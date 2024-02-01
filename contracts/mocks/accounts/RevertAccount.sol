@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: none
+pragma solidity 0.8.19;
+
+
+/**
+ * @title RevertAccount
+ * @notice A bot that reverts on every call.
+ *
+ * Only used to test other contracts.
+*/
+contract RevertAccount {
+
+    receive () external payable {
+        revert();
+    }
+
+    fallback () external payable {
+        revert();
+    }
+}

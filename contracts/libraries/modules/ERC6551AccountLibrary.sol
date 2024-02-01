@@ -2,38 +2,51 @@
 pragma solidity 0.8.19;
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { ERC721Holder } from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import { Calls } from "./../libraries/Calls.sol";
-import { Errors } from "./../libraries/Errors.sol";
-import { IERC6551Account } from "./../interfaces/accounts/IERC6551Account.sol";
-import { IERC6551AccountExtended } from "./../interfaces/accounts/IERC6551AccountExtended.sol";
+import { IERC6551Account } from "./../../interfaces/accounts/IERC6551Account.sol";
+import { Calls } from "./../Calls.sol";
+import { Errors } from "./../Errors.sol";
 
 
 /**
- * @title ERC6551Account
- * @notice The base contract for ERC6551 accounts. May be deployed and used as-is or extended.
-*/
-contract ERC6551Account is IERC6551AccountExtended, ERC721Holder, Multicall, ReentrancyGuard {
+ * @title ERC6551AccountLibrary
+ * @author Blue Matter Tehcnologies
+ * @notice A library that assists with storing and retrieving the gas token.
+ */
+library ERC6551AccountLibrary {
 
-    uint256 internal _state;
+    bytes32 constant private ERC6551_ACCOUNT_LIBRARY_STORAGE_POSITION = keccak256("boom.storage.erc6551");
+
+    struct ERC6551AccountModuleStorage {
+        uint256 state;
+    }
 
     /***************************************
     VIEW FUNCTIONS
     ***************************************/
 
     /**
+     * @notice Returns the `ERC6551AccountModuleStorage` struct.
+     * @return erc6551ams The `ERC6551AccountModuleStorage` struct.
+     */
+    function erc6551AccountModuleStorage() internal pure returns (ERC6551AccountModuleStorage storage erc6551ams) {
+        bytes32 position = ERC6551_ACCOUNT_LIBRARY_STORAGE_POSITION;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            erc6551ams.slot := position
+        }
+    }
+
+    /**
      * @notice Returns the owner of this account.
      * By default this is the owner of the affiliated NFT.
      * @return owner_ The owner of this account.
      */
-    function owner() public view virtual override returns (address owner_) {
+    function owner() internal view returns (address owner_) {
         (uint256 chainId, address tokenContract, uint256 tokenId) = token();
-        if (chainId != block.chainid) return address(0);
-        return IERC721(tokenContract).ownerOf(tokenId);
+        if (chainId != block.chainid) owner_ = address(0);
+        else owner_ = IERC721(tokenContract).ownerOf(tokenId);
     }
 
     /**
@@ -45,20 +58,31 @@ contract ERC6551Account is IERC6551AccountExtended, ERC721Holder, Multicall, Ree
      * @return tokenContract The contract address of the token
      * @return tokenId       The ID of the token
      */
-    function token() public view virtual override returns (uint256 chainId, address tokenContract, uint256 tokenId) {
+    function token() internal view returns (uint256 chainId, address tokenContract, uint256 tokenId) {
         bytes memory footer = new bytes(0x60);
         assembly {
             extcodecopy(address(), add(footer, 0x20), 0x4d, 0x60)
         }
-        return abi.decode(footer, (uint256, address, uint256));
+        (chainId, tokenContract, tokenId) = abi.decode(footer, (uint256, address, uint256));
     }
 
     /**
      * @notice Returns a value that SHOULD be modified each time the account changes state.
      * @return state_ The current account state.
      */
-    function state() external view virtual override returns (uint256 state_) {
-        return _state;
+    function state() internal view returns (uint256 state_) {
+        ERC6551AccountModuleStorage storage erc6551ams = erc6551AccountModuleStorage();
+        state_ = erc6551ams.state;
+    }
+
+    /**
+     * @notice Checks if the signer is authorized to act on behalf of the account.
+     * By default this is limited to only the nft owner.
+     * @param signer The account to validate authorization.
+     * @return isAuthorized True if the signer is authorized, false otherwise.
+     */
+    function isValidSigner(address signer) internal view returns (bool isAuthorized) {
+        isAuthorized = signer == owner();
     }
 
     /**
@@ -77,11 +101,12 @@ contract ERC6551Account is IERC6551AccountExtended, ERC721Holder, Multicall, Ree
      * @param  context    Additional data used to determine whether the signer is valid
      * @return magicValue Magic value indicating whether the signer is valid
      */
-    function isValidSigner(address signer, bytes calldata context) external view virtual override returns (bytes4 magicValue) {
-        if (_isValidSigner(signer)) {
-            return IERC6551Account.isValidSigner.selector;
+    function isValidSigner(address signer, bytes calldata context) internal view returns (bytes4 magicValue) {
+        if (isValidSigner(signer)) {
+            magicValue = IERC6551Account.isValidSigner.selector;
+        } else {
+            magicValue = bytes4(0);
         }
-        return bytes4(0);
     }
 
     /**
@@ -95,40 +120,26 @@ contract ERC6551Account is IERC6551AccountExtended, ERC721Holder, Multicall, Ree
      * @param signature The signature to validate.
      * @return magicValue Magic value indicating whether the signer is valid.
      */
-    function isValidSignature(bytes32 hash, bytes memory signature) external view virtual override returns (bytes4 magicValue) {
+    function isValidSignature(bytes32 hash, bytes memory signature) internal view returns (bytes4 magicValue) {
         bool isValid = SignatureChecker.isValidSignatureNow(owner(), hash, signature);
         if (isValid) {
-            return IERC1271.isValidSignature.selector;
+            magicValue = IERC1271.isValidSignature.selector;
+        } else {
+            magicValue = bytes4(0);
         }
-        return bytes4(0);
     }
 
     /**
-     * @notice Returns true if this contract implements the interface defined by `interfaceId`.
-     * @param interfaceId The id of the interface to query.
-     * @return status True if supported, false otherwise.
+     * @notice Validates msg.sender is authorized to act on behalf of the account.
+     * By default this is limited to only the nft owner.
      */
-    function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool status) {
-        return (
-            (interfaceId == 0x01ffc9a7) || // erc165
-            (interfaceId == 0x6faff5f1) || // erc6551 account
-            (interfaceId == 0x51945447)    // erc6551 executable
-        );
+    function validateSender() internal view {
+        if(!isValidSigner(msg.sender)) revert Errors.ERC6551InvalidSigner();
     }
 
     /***************************************
     MUTATOR FUNCTIONS
     ***************************************/
-
-    /**
-     * @notice Allows the account to receive Ether.
-     *
-     * Accounts MUST implement a `receive` function.
-     *
-     * Accounts MAY perform arbitrary logic to restrict conditions
-     * under which Ether can be received.
-     */
-    receive() external payable virtual override {}
 
     /**
      * @notice Executes a low-level operation if the caller is a valid signer on the account.
@@ -155,39 +166,18 @@ contract ERC6551Account is IERC6551AccountExtended, ERC721Holder, Multicall, Ree
         uint256 value,
         bytes calldata data,
         uint8 operation
-    ) external payable virtual override onlyOwner returns (bytes memory result) {
+    ) internal returns (bytes memory result) {
+        validateSender();
         if(operation != 0) revert Errors.OnlyCallsAllowed();
         result = Calls.functionCallWithValue(to, data, value);
-        ++_state;
-    }
-
-    /***************************************
-    HELPER FUNCTIONS
-    ***************************************/
-
-    /**
-     * @notice Modifier that only allows the owner of the ERC721 to call a function.
-     */
-    modifier onlyOwner() {
-        _validateSender();
-        _;
+        incrementState();
     }
 
     /**
-     * @notice Checks if the signer is authorized to act on behalf of the account.
-     * By default this is limited to only the nft owner.
-     * @param signer The account to validate authorization.
-     * @return isAuthorized True if the signer is authorized, false otherwise.
+     * @notice Updates the account state.
      */
-    function _isValidSigner(address signer) internal view virtual returns (bool isAuthorized) {
-        return signer == owner();
-    }
-
-    /**
-     * @notice Validates msg.sender is authorized to act on behalf of the account.
-     * By default this is limited to only the nft owner.
-     */
-    function _validateSender() internal view virtual {
-        if(!_isValidSigner(msg.sender)) revert Errors.ERC6551InvalidSigner();
+    function incrementState() internal {
+        ERC6551AccountModuleStorage storage erc6551ams = erc6551AccountModuleStorage();
+        ++erc6551ams.state;
     }
 }

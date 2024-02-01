@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: none
 pragma solidity 0.8.19;
 
 
@@ -6,7 +6,7 @@ pragma solidity 0.8.19;
  * @title IERC6551Account
  * @notice The base interface for ERC6551 accounts.
  * This interface was defined in the ERC6551 standard.
- * @dev The ERC-165 identifier for this interface is `0x6faff5f1`
+ * @dev The ERC-165 identifier for this interface is `0x6faff5f1`.
 */
 interface IERC6551Account {
 

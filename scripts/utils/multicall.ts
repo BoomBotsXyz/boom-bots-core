@@ -49,6 +49,7 @@ const multicallAddresses: {[chainID: number]: string} = {
     1313161555: '0x8f81207F59A4f86d68608fF90b259A0927242967',
     8453: '0xcA11bde05977b3631167028862bE2a173976CA11',
     84531: '0x13F51B7b96f420b0F7153279f771edAa27d70dF6',
+    168587773: '0x2FDDaa20266E88dD7E6D0c4DfbCcBe5125a3dF79',
 };
 
 export const MulticallContract = Contract
