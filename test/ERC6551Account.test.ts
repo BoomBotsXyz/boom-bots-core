@@ -8,13 +8,14 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 const { expect } = chai;
 
-import { ERC6551Registry, ERC6551Account, MockERC20, MockERC721 } from "./../typechain-types";
+import { IERC6551Registry, ERC6551Account, MockERC20, MockERC721 } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
 import { getNetworkSettings } from "../scripts/utils/getNetworkSettings";
 import { decimalsToAmount } from "../scripts/utils/price";
 import { deployContract } from "../scripts/utils/deployContract";
+import L1DataFeeAnalyzer from "../scripts/utils/L1DataFeeAnalyzer";
 
 const { AddressZero, WeiPerEther, MaxUint256, Zero } = ethers.constants;
 const WeiPerUsdc = BN.from(1_000_000); // 6 decimals
@@ -24,7 +25,7 @@ const ERC6551_REGISTRY_ADDRESS = "0x000000006551c19487814612e58FE06813775758";
 const MAGIC_VALUE_0 = "0x00000000";
 const MAGIC_VALUE_IS_VALID_SIGNER = "0x523e3260";
 
-describe("erc6551", function () {
+describe("ERC6551Account", function () {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let user1: SignerWithAddress;
@@ -33,7 +34,7 @@ describe("erc6551", function () {
   let user4: SignerWithAddress;
   let user5: SignerWithAddress;
 
-  let erc6551Registry: ERC6551Registry;
+  let erc6551Registry: IERC6551Registry;
   let erc721TBA: MockERC721; // the erc721 that may have token bound accounts
   let erc721Asset: MockERC721; // an erc721 that token bound accounts may hold
   let erc6551AccountImplementation: ERC6551Account; // the base implementation for token bound accounts
@@ -56,6 +57,8 @@ describe("erc6551", function () {
   let networkSettings: any;
   let snapshot: BN;
 
+  let l1DataFeeAnalyzer = new L1DataFeeAnalyzer();
+
   before(async function () {
     [deployer, owner, user1, user2, user3, user4, user5] = await ethers.getSigners();
     chainID = (await provider.getNetwork()).chainId;
@@ -70,6 +73,7 @@ describe("erc6551", function () {
     //}
     //[token1, token2, token3] = tokens;
     erc20 = await deployContract(deployer, "MockERC20", [`Token 1`, `TKN1`, 18]) as MockERC20;
+    expect(await erc20.decimals()).eq(18)
 
     //nonstandardToken1 = await deployContract(deployer, "MockERC20NoReturnsSuccess", [`NonstandardToken1`, `NSTKN1`, 18]) as MockERC20NoReturnsSuccess;
     //nonstandardToken2 = await deployContract(deployer, "MockERC20NoReturnsRevert", [`NonstandardToken2`, `NSTKN2`, 18]) as MockERC20NoReturnsRevert;
@@ -77,7 +81,7 @@ describe("erc6551", function () {
     //nonstandardToken4 = await deployContract(deployer, "MockERC20SuccessFalse", [`NonstandardToken4`, `NSTKN4`, 18]) as MockERC20SuccessFalse;
 
     await expectDeployed(ERC6551_REGISTRY_ADDRESS); // expect to be run on a fork of a testnet with registry deployed
-    erc6551Registry = await ethers.getContractAt("ERC6551Registry", ERC6551_REGISTRY_ADDRESS) as ERC6551Registry;
+    erc6551Registry = await ethers.getContractAt("IERC6551Registry", ERC6551_REGISTRY_ADDRESS) as IERC6551Registry;
   });
 
   after(async function () {
@@ -132,10 +136,11 @@ describe("erc6551", function () {
       // create account and register
       let predictedAddress2 = await erc6551Registry.callStatic.createAccount(erc6551AccountImplementation.address, salt, chainID, erc721TBA.address, tokenId);
       expect(predictedAddress).eq(predictedAddress2);
-      await erc6551Registry.createAccount(erc6551AccountImplementation.address, salt, chainID, erc721TBA.address, tokenId);
+      let tx = await erc6551Registry.createAccount(erc6551AccountImplementation.address, salt, chainID, erc721TBA.address, tokenId);
       let isDeployed2 = await isDeployed(predictedAddress)
       expect(isDeployed2).to.be.true;
       erc6551Account1 = await ethers.getContractAt("ERC6551Account", predictedAddress) as ERC6551Account;
+      l1DataFeeAnalyzer.register("registry.createAccount", tx);
     });
     it("account begins with state", async function () {
       expect(await erc6551Account1.owner()).eq(user1.address);
@@ -159,7 +164,7 @@ describe("erc6551", function () {
       let tokenId2 = 2;
       let chainId2 = 9999;
       let predictedAddress = await erc6551Registry.account(erc6551AccountImplementation.address, salt, chainId2, erc721TBA.address, tokenId2);
-      await erc6551Registry.createAccount(erc6551AccountImplementation.address, salt, chainId2, erc721TBA.address, tokenId2);
+      let tx = await erc6551Registry.createAccount(erc6551AccountImplementation.address, salt, chainId2, erc721TBA.address, tokenId2);
       erc6551Account2 = await ethers.getContractAt("ERC6551Account", predictedAddress) as ERC6551Account;
 
       expect(await erc6551Account2.owner()).eq(AddressZero);
@@ -178,6 +183,7 @@ describe("erc6551", function () {
       expect(await erc6551Account2.supportsInterface("0x51945447")).eq(true);
       expect(await erc6551Account2.supportsInterface("0xffffffff")).eq(false);
       expect(await erc6551Account2.supportsInterface("0x00000000")).eq(false);
+      l1DataFeeAnalyzer.register("registry.createAccount", tx);
     });
   });
 
@@ -192,21 +198,23 @@ describe("erc6551", function () {
       });
       let bal2 = await provider.getBalance(erc6551Account1.address);
       expect(bal2).eq(0);
+      let transferAmount = WeiPerEther.mul(10);
       await user1.sendTransaction({
         to: erc6551Account1.address,
-        value: WeiPerEther,
+        value: transferAmount,
         data: "0x"
       });
       let bal3 = await provider.getBalance(erc6551Account1.address);
-      expect(bal3).eq(WeiPerEther);
+      expect(bal3).eq(transferAmount);
     });
     it("can receive ERC20", async function () {
       let bal1 = await erc20.balanceOf(erc6551Account1.address);
       expect(bal1).eq(0);
       await erc20.mint(user1.address, WeiPerEther.mul(1000));
-      await erc20.connect(user1).transfer(erc6551Account1.address, WeiPerEther.mul(5));
+      let transferAmount = WeiPerEther.mul(800);
+      await erc20.connect(user1).transfer(erc6551Account1.address, transferAmount);
       let bal2 = await erc20.balanceOf(erc6551Account1.address);
-      expect(bal2).eq(WeiPerEther.mul(5));
+      expect(bal2).eq(transferAmount);
     });
     it("can receive ERC721", async function () {
       // mint
@@ -246,32 +254,90 @@ describe("erc6551", function () {
       await expect(erc6551Account1.connect(user1).execute(user2.address, WeiPerEther.mul(9999), "0x", 0)).to.be.reverted;
     });
     it("owner can send ETH", async function () {
+      let state1 = await erc6551Account1.state();
       let bal1 = await provider.getBalance(user2.address);
-      await erc6551Account1.connect(user1).execute(user2.address, WeiPerEther.div(3), "0x", 0);
+      let transferAmount = WeiPerEther.div(3);
+      let tx = await erc6551Account1.connect(user1).execute(user2.address, transferAmount, "0x", 0);
       let bal2 = await provider.getBalance(user2.address);
-      expect(bal2.sub(bal1)).eq(WeiPerEther.div(3));
-      expect(await erc6551Account1.state()).eq(1);
+      expect(bal2.sub(bal1)).eq(transferAmount);
+      let state2 = await erc6551Account1.state();
+      expect(state2.sub(state1)).eq(1);
+      l1DataFeeAnalyzer.register("execute transfer ETH", tx);
     });
     it("owner can send ERC20", async function () {
+      let state1 = await erc6551Account1.state();
       let bal11 = await erc20.balanceOf(erc6551Account1.address);
       let bal12 = await erc20.balanceOf(user2.address);
-      let transferAmount = WeiPerEther.mul(2);
+      let transferAmount = WeiPerEther.mul(25);
       let calldata = erc20.interface.encodeFunctionData("transfer", [user2.address, transferAmount]);
-      await erc6551Account1.connect(user1).execute(erc20.address, 0, calldata, 0);
+      let tx = await erc6551Account1.connect(user1).execute(erc20.address, 0, calldata, 0);
       let bal21 = await erc20.balanceOf(erc6551Account1.address);
       let bal22 = await erc20.balanceOf(user2.address);
       expect(bal22.sub(bal12)).eq(transferAmount);
       expect(bal11.sub(bal21)).eq(transferAmount);
-      expect(await erc6551Account1.state()).eq(2);
+      let state2 = await erc6551Account1.state();
+      expect(state2.sub(state1)).eq(1);
+      l1DataFeeAnalyzer.register("execute transfer ERC20", tx);
     });
     it("owner can send ERC721", async function () {
+      let state1 = await erc6551Account1.state();
       let tokenId = 2;
       expect(await erc721Asset.ownerOf(tokenId)).eq(erc6551Account1.address);
       let calldata = erc721Asset.interface.encodeFunctionData("transferFrom", [erc6551Account1.address, user2.address, tokenId]);
-      await erc6551Account1.connect(user1).execute(erc721Asset.address, 0, calldata, 0);
+      let tx = await erc6551Account1.connect(user1).execute(erc721Asset.address, 0, calldata, 0);
       expect(await erc721Asset.ownerOf(tokenId)).eq(user2.address);
+      let state2 = await erc6551Account1.state();
+      expect(state2.sub(state1)).eq(1);
+      l1DataFeeAnalyzer.register("execute transfer ERC721", tx);
     });
     //it("owner can send ERC1155", async function () {});
+    it("can multicall execute", async function () {
+      let state1 = await erc6551Account1.state();
+      let ethBal11 = await provider.getBalance(erc6551Account1.address);
+      let ethBal12 = await provider.getBalance(user2.address);
+      let erc20Bal11 = await erc20.balanceOf(erc6551Account1.address);
+      let erc20Bal12 = await erc20.balanceOf(user2.address);
+      let ethTransferAmount = WeiPerEther.div(25);
+      let erc20TransferAmount = WeiPerEther.mul(500);
+      let txdata0 = erc6551Account1.interface.encodeFunctionData("execute", [user2.address, ethTransferAmount, "0x", 0])
+      let erc20Calldata = erc20.interface.encodeFunctionData("transfer", [user2.address, erc20TransferAmount]);
+      let txdata1 = erc6551Account1.interface.encodeFunctionData("execute", [erc20.address, 0, erc20Calldata, 0]);
+      let txdatas = [txdata0, txdata1];
+      let tx = await erc6551Account1.connect(user1).multicall(txdatas);
+      let ethBal21 = await provider.getBalance(erc6551Account1.address);
+      let ethBal22 = await provider.getBalance(user2.address);
+      let erc20Bal21 = await erc20.balanceOf(erc6551Account1.address);
+      let erc20Bal22 = await erc20.balanceOf(user2.address);
+      expect(ethBal22.sub(ethBal12)).eq(ethTransferAmount);
+      expect(ethBal11.sub(ethBal21)).eq(ethTransferAmount);
+      expect(erc20Bal22.sub(erc20Bal12)).eq(erc20TransferAmount);
+      expect(erc20Bal11.sub(erc20Bal21)).eq(erc20TransferAmount);
+      let state2 = await erc6551Account1.state();
+      expect(state2.sub(state1)).eq(2);
+      l1DataFeeAnalyzer.register("execute multicall", tx);
+    });
+    it("is payable", async function () {
+      let state1 = await erc6551Account1.state();
+      let ethBal11 = await provider.getBalance(erc6551Account1.address);
+      let ethPayableAmount = WeiPerEther.mul(3);
+      let tx = await erc6551Account1.connect(user1).execute(user2.address, 0, "0x", 0, {value: ethPayableAmount});
+      let ethBal21 = await provider.getBalance(erc6551Account1.address);
+      expect(ethBal21.sub(ethBal11)).eq(ethPayableAmount);
+      let state2 = await erc6551Account1.state();
+      expect(state2.sub(state1)).eq(1);
+      l1DataFeeAnalyzer.register("execute payable", tx);
+    });
+    it("is reenterable", async function () {
+      let state1 = await erc6551Account1.state();
+      let ethBal11 = await provider.getBalance(erc6551Account1.address);
+      let ethPayableAmount = WeiPerEther.mul(4);
+      let tx = await erc6551Account1.connect(user1).execute(erc6551Account1.address, 0, "0x", 0, {value: ethPayableAmount});
+      let ethBal21 = await provider.getBalance(erc6551Account1.address);
+      expect(ethBal21.sub(ethBal11)).eq(ethPayableAmount);
+      let state2 = await erc6551Account1.state();
+      expect(state2.sub(state1)).eq(1);
+      l1DataFeeAnalyzer.register("execute reenterable", tx);
+    });
   });
 
   describe("account ownership", function () {
@@ -287,7 +353,16 @@ describe("erc6551", function () {
       await expect(erc6551Account1.connect(user1).execute(user1.address, 0, "0x", 0)).to.be.revertedWithCustomError(erc6551Account1, "ERC6551InvalidSigner");
     });
     it("new owner can execute", async function () {
-      await erc6551Account1.connect(user2).execute(user3.address, WeiPerEther.div(4), "0x", 0);
+      let state1 = await erc6551Account1.state();
+      await erc6551Account1.connect(user2).execute(user3.address, WeiPerEther.mul(2), "0x", 0);
+      let state2 = await erc6551Account1.state();
+      expect(state2.sub(state1)).eq(1);
+    });
+  });
+
+  describe("L1 gas fees", function () {
+    it("calculate", async function () {
+      l1DataFeeAnalyzer.analyze()
     });
   });
 });

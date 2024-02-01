@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: none
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IERC6551Account } from "./IERC6551Account.sol";
 import { IERC6551Executable } from "./IERC6551Executable.sol";
 
@@ -12,15 +12,6 @@ import { IERC6551Executable } from "./IERC6551Executable.sol";
  * @notice An interface for ERC6551 accounts. Contains the required functionality plus some helpful functions not required by the ERC6551 standard.
 */
 interface IERC6551AccountExtended is IERC165, IERC1271, IERC6551Account, IERC6551Executable {
-
-    /**
-     * @notice Thrown if a non-owner tries to execute an operation.
-     */
-    error ERC6551InvalidSigner();
-    /**
-     * @notice Thrown if the owner tries to execute an operation that is not a call.
-     */
-    error OnlyCallsAllowed();
 
     /**
      * @notice Returns the owner of this account.

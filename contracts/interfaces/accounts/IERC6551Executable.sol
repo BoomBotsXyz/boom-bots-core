@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: none
 pragma solidity 0.8.19;
 
 
@@ -6,7 +6,7 @@ pragma solidity 0.8.19;
  * @title IERC6551Executable
  * @notice The base interface for ERC6551 accounts that allow signers to execute arbitrary operations on behalf of the account.
  * This interface was defined in the ERC6551 standard.
- * @dev the ERC-165 identifier for this interface is `0x51945447`
+ * @dev the ERC-165 identifier for this interface is `0x51945447`.
 */
 interface IERC6551Executable {
 
