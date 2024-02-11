@@ -71,22 +71,20 @@ async function main() {
     return ((chainID == chainid)/* || ((chainID == 31337) && (process.env.FORK_NETWORK === chainName))*/);
   }
   if(!isChain(168587773, "blastsepolia")) throw("Only run this on Blast Sepolia. Cannot use a local fork");
-  //await expectDeployed(ERC6551_REGISTRY_ADDRESS)
 
   accountProxy129 = await ethers.getContractAt(abi, botAddress129, blasttestnetuser3);
   iblast = await ethers.getContractAt("IBlast", BLAST_ADDRESS, boombotseth) as IBlast;
 
-  //boomBotsNft = await ethers.getContractAt("BoomBots", BOOM_BOTS_NFT_ADDRESS, boombotseth) as BoomBots;
-  //mcContract = new MulticallContract(mcProvider._multicallAddress, ABI_MULTICALL)
-  //boomBotsNftMC = new MulticallContract(BOOM_BOTS_NFT_ADDRESS, ABI_BOOM_BOTS_NFT)
-  //accountImplementation = await ethers.getContractAt("BoomBotAccount", ACCOUNT_IMPLEMENTATION_ADDRESS, boombotseth) as BoomBotAccount;
-  //modulePack100 = await ethers.getContractAt("ModulePack100", MODULE_PACK_100_ADDRESS, boombotseth) as ModulePack100;
-  //dataStore = await ethers.getContractAt("DataStore", DATA_STORE_ADDRESS, boombotseth) as DataStore;
-  //factory = await ethers.getContractAt("BoomBotsFactory", BOOM_BOTS_FACTORY_ADDRESS, boombotseth) as BoomBotsFactory;
   ringProtocolModuleA = await ethers.getContractAt("RingProtocolModuleA", RING_PROTOCOL_MODULE_A_ADDRESS, boombotseth) as RingProtocolModuleA;
 
   //await useBot129_1();
   //await useBot129_2();
+  //await useBot129_3();
+  //await useBot129_4();
+  await useBot129_5();
+  //await useBot129_6();
+  await useBot129_7();
+  await useBot129_5();
 }
 
 // install and execute
@@ -128,6 +126,77 @@ async function useBot129_2() {
   await tx.wait(networkSettings.confirmations)
   console.log("Used bot 129_2")
 }
+
+// configure automatic yield
+async function useBot129_3() {
+  console.log("Using bot 129_3")
+  let calldata = iblast.interface.encodeFunctionData("configureAutomaticYield")
+  let tx = await accountProxy129.connect(blasttestnetuser3).execute(BLAST_ADDRESS, 0, calldata, 0, {...networkSettings.overrides, gasLimit:1_000_000})
+  console.log('tx')
+  console.log(tx)
+  await tx.wait(networkSettings.confirmations)
+  console.log("Used bot 129_3")
+}
+
+// configure gas rewards
+async function useBot129_4() {
+  console.log("Using bot 129_4")
+  let calldata = iblast.interface.encodeFunctionData("configureClaimableGas")
+  let tx = await accountProxy129.connect(blasttestnetuser3).execute(BLAST_ADDRESS, 0, calldata, 0, {...networkSettings.overrides, gasLimit:1_000_000})
+  console.log('tx')
+  console.log(tx)
+  await tx.wait(networkSettings.confirmations)
+  console.log("Used bot 129_4")
+}
+
+// view rewards
+async function useBot129_5() {
+  console.log("Using bot 129_5")
+  var res1 = await iblast.readClaimableYield(botAddress129)
+  console.log(`Claimable yield      : ${res1}`)
+  var res2 = await iblast.readYieldConfiguration(botAddress129)
+  console.log(`Yield configuration  : ${res2}`)
+  var res3 = await iblast.readGasParams(botAddress129)
+  console.log(`Gas params`)
+  console.log(`  etherSeconds       : ${res3[0]}`)
+  console.log(`  etherBalance       : ${res3[1]}`)
+  console.log(`  lastUpdated        : ${res3[2]}`)
+  console.log(`  gasMode            : ${res3[3]}`)
+  console.log("Used bot 129_5")
+  /*
+  console.log("Using ringProtocolModuleA")
+  var res1 = await iblast.readClaimableYield(ERC6551_REGISTRY_ADDRESS)
+  console.log(res1)
+  var res2 = await iblast.readYieldConfiguration(ERC6551_REGISTRY_ADDRESS)
+  console.log(res2)
+  var res3 = await iblast.readGasParams(ERC6551_REGISTRY_ADDRESS)
+  console.log(res3)
+  console.log("Used ringProtocolModuleA")
+  */
+}
+
+// claim max gas rewards
+async function useBot129_6() {
+  console.log("Using bot 129_6")
+  let calldata = iblast.interface.encodeFunctionData("claimMaxGas", [botAddress129, botAddress129])
+  let tx = await accountProxy129.connect(blasttestnetuser3).execute(BLAST_ADDRESS, 0, calldata, 0, {...networkSettings.overrides, gasLimit:1_000_000})
+  console.log('tx')
+  console.log(tx)
+  await tx.wait(networkSettings.confirmations)
+  console.log("Used bot 129_6")
+}
+
+// claim all gas rewards
+async function useBot129_7() {
+  console.log("Using bot 129_7")
+  let calldata = iblast.interface.encodeFunctionData("claimAllGas", [botAddress129, botAddress129])
+  let tx = await accountProxy129.connect(blasttestnetuser3).execute(BLAST_ADDRESS, 0, calldata, 0, {...networkSettings.overrides, gasLimit:1_000_000})
+  console.log('tx')
+  console.log(tx)
+  await tx.wait(networkSettings.confirmations)
+  console.log("Used bot 129_7")
+}
+
 
 main()
     .then(() => process.exit(0))
