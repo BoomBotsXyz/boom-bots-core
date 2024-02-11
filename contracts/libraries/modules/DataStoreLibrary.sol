@@ -6,7 +6,7 @@ import { Errors } from "./../Errors.sol";
 
 /**
  * @title DataStoreLibrary
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A library that stores and retrieves the address of the DataStore contract.
  *
  * This library is NOT the DataStore nor does it store similar data. It simply stores the DataStore contract address so that other modules and libraries may query it.

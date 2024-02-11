@@ -9,7 +9,7 @@ import { ReentrancyGuardLibrary } from "./../libraries/modules/ReentrancyGuardLi
 
 /**
  * @title ERC165Module
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that supports ERC165 Standard Interface Detection.
  *
  * Allows [`supportsInterface()`](#supportsinterface) per ERC165. Also allows the contract owner to update the list of supported interfaces via [`updateSupportedInterfaces()`](#updatesupportedinterfaces).

@@ -7,7 +7,7 @@ import { DataStoreLibrary } from "./../libraries/modules/DataStoreLibrary.sol";
 
 /**
  * @title DataStoreModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that stores and retrieves the address of the DataStore contract.
  *
  * This module is NOT the DataStore nor does it store similar data. It simply stores the DataStore contract address so that other modules may query it.

@@ -11,7 +11,7 @@ import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 
 /**
  * @title BoomBotsFactory
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A factory for BOOM! Bots.
  *
  * Users can use [`createBot()`](#createbot) to create a new bot. The bot will be created based on settings stored in the factory by the contract owner. These settings can be viewed via [`getBotCreationSettings()`](#getbotcreationsettings).

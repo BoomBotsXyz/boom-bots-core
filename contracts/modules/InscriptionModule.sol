@@ -6,7 +6,7 @@ import { IInscriptionModule } from "./../interfaces/modules/IInscriptionModule.s
 
 /**
  * @title InscriptionModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that allows messages to be inscribed onto a bot.
  *
  * Inscriptions are messages that are stored onchain but not executed onchain. To inscribe a message is to write it in transaction data. The message can be retrieved and validated any time after it is written.

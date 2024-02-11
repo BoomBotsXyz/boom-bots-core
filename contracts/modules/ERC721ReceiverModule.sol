@@ -8,7 +8,7 @@ import { Errors } from "./../libraries/Errors.sol";
 
 /**
  * @title ERC721ReceiverModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that allows a contract to receive an ERC721 token.
  */
 contract ERC721ReceiverModule is IERC721ReceiverModule {

@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 /**
  * @title IERC6551AccountModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice
  */
 interface IERC6551AccountModule {

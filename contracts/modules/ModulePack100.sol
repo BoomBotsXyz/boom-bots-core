@@ -14,7 +14,7 @@ import { InscriptionModule } from "./InscriptionModule.sol";
 
 /**
  * @title ModulePack100
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice
  */
 // solhint-disable-next-line no-empty-blocks

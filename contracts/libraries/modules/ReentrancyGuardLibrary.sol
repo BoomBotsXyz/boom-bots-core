@@ -6,7 +6,7 @@ import { Errors } from "./../Errors.sol";
 
 /**
  * @title ReentrancyGuardLibrary
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A library that helps protect against unwanted reentrancy.
  *
  * The state can be fetched via [`reentrancyGuardState()`](#reentrancyguardstate). A return value of `1` means that it can be entered. Any other value means that it cannot.

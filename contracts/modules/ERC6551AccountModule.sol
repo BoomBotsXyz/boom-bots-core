@@ -8,7 +8,7 @@ import { ReentrancyGuardLibrary } from "./../libraries/modules/ReentrancyGuardLi
 
 /**
  * @title ERC6551AccountModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice
  */
 contract ERC6551AccountModule is IERC6551AccountModule {

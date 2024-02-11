@@ -9,7 +9,7 @@ import { ReentrancyGuardLibrary } from "./../libraries/modules/ReentrancyGuardLi
 
 /**
  * @title ERC2535Module
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that allows modification and inspection of an ERC2535 Modular Smart Contract.
  *
  * See details of the `ERC2535` diamond standard at https://eips.ethereum.org/EIPS/eip-2535.
