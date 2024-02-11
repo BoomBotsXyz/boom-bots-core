@@ -51,7 +51,7 @@ const config: HardhatUserConfig = {
     },
     sepolia: {
       url: process.env.SEPOLIA_URL||'',
-      chainId: 111555111,
+      chainId: 11155111,
       accounts: accounts
     },
     polygon: {
@@ -101,11 +101,10 @@ const config: HardhatUserConfig = {
     artifacts: "./artifacts",
   },
   abiExporter: {
-    path: "./client/src/constants/abi",
+    path: "./abi",
+    runOnCompile: true,
     clear: true,
-    flat: false,
-    only: [],
-    spacing: 2,
+    spacing: 0,
   },
   mocha: {
     timeout: 3600000, // one hour

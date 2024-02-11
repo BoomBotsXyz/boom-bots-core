@@ -11,5 +11,6 @@ docs/*
 cache
 artifacts
 
+abi/
 *-backup*
 *-ignore*
