@@ -8,7 +8,7 @@ import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extension
 import { Errors } from "./../libraries/Errors.sol";
 import { IERC6551Registry } from "./../interfaces/erc6551/IERC6551Registry.sol";
 import { IBoomBots } from "./../interfaces/tokens/IBoomBots.sol";
-import { Ownable2Step } from "./../utils/Ownable2Step.sol";
+import { Blastable } from "./../utils/Blastable.sol";
 
 
 /**
@@ -26,7 +26,7 @@ import { Ownable2Step } from "./../utils/Ownable2Step.sol";
  *
  * BoomBots are ERC721s with the enumerable extension. Additional information about each bot can be queried via [`getBotInfo()`](#getbotinfo) and [`exists()`](#exists).
  */
-contract BoomBots is IBoomBots, ERC721Enumerable, Ownable2Step, Multicall {
+contract BoomBots is IBoomBots, ERC721Enumerable, Blastable, Multicall {
 
     mapping(address => bool) internal _factoryIsWhitelisted;
 

@@ -36,6 +36,8 @@ library Errors {
     error AddressNotZero();
     /// @notice Thrown when an address is used where it should not be.
     //error AddressIllegal();
+    /// @notice Thrown when a zero amount used where it should not be.
+    error AmountZero();
     /// @notice Thrown when the number of elements in an array is not what was expected.
     error LengthMismatch();
     /// @notice Thrown when receiving an array of length zero.
@@ -78,4 +80,10 @@ library Errors {
     error FunctionDoesNotExist();
     /// @notice Thrown when attempting to install a module that is not whitelisted.
     error ModuleNotWhitelisted();
+
+    // quoter errors
+    /// @notice Thrown when failing to decode an error message.
+    error UnknownError();
+    /// @notice Thrown when a revert was intentionally thrown in order to return a value.
+    error RevertForAmount(uint256 amount);
 }

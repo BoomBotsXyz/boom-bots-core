@@ -215,20 +215,4 @@ interface IDataStore {
      * @param params token, fee, receiver.
      */
     function setFlashLoanFees(SetFlashLoanFeeParam[] calldata params) external;
-
-    /***************************************
-    TOKEN BALANCE FUNCTIONS
-    ***************************************/
-
-    /**
-     * @notice Rescues tokens that may have been accidentally transferred in.
-     * Can only be called by the contract owner.
-     * @param tokens The tokens to rescue. Can be ETH or ERC20s.
-     */
-    function sweep(address[] calldata tokens) external payable;
-
-    /**
-     * @notice Allows this contract to receive the gas token.
-     */
-    receive() external payable;
 }

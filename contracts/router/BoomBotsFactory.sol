@@ -6,7 +6,7 @@ import { Calls } from "./../libraries/Calls.sol";
 import { Errors } from "./../libraries/Errors.sol";
 import { IBoomBots } from "./../interfaces/tokens/IBoomBots.sol";
 import { IBoomBotsFactory } from "./../interfaces/router/IBoomBotsFactory.sol";
-import { Ownable2Step } from "./../utils/Ownable2Step.sol";
+import { Blastable } from "./../utils/Blastable.sol";
 
 
 /**
@@ -16,7 +16,7 @@ import { Ownable2Step } from "./../utils/Ownable2Step.sol";
  *
  * Users can use [`createBot()`](#createbot) to create a new bot. The bot will be created based on settings stored in the factory by the contract owner. These settings can be viewed via [`getBotCreationSettings()`](#getbotcreationsettings).
  */
-contract BoomBotsFactory is Multicall, Ownable2Step, IBoomBotsFactory {
+contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
 
     address internal _botNft;
     address internal _botImplementation;

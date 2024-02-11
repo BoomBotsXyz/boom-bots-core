@@ -12,6 +12,35 @@ import { Errors } from "./Errors.sol";
 library Calls {
 
     /**
+     * @notice Safely transfers the gas token using a low level `call`.
+     * @dev If `target` reverts with a revert reason, it is bubbled up by this function.
+     * @param target The address of the contract to `call`.
+     * @return result The result of the function call.
+     */
+    function sendValue(
+        address target,
+        uint256 value
+    ) internal returns (bytes memory result) {
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, bytes memory returndata) = target.call{value:value}("");
+        if(success) {
+            result = returndata;
+        } else {
+            // look for revert reason and bubble it up if present
+            if(returndata.length > 0) {
+                // the easiest way to bubble the revert reason is using memory via assembly
+                // solhint-disable-next-line no-inline-assembly
+                assembly {
+                    let returndata_size := mload(returndata)
+                    revert(add(32, returndata), returndata_size)
+                }
+            } else {
+                revert Errors.CallFailed();
+            }
+        }
+    }
+
+    /**
      * @notice Safely performs a Solidity function call using a low level `call`.
      * @dev If `target` reverts with a revert reason, it is bubbled up by this function.
      * @param target The address of the contract to `delegatecall`.

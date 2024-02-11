@@ -36,7 +36,7 @@ exports.rightPad = rightPad
 
 // like ethers.utils.formatUnits()
 // except keeps trailing zeros
-export function formatUnits2(n: any, dec: any) {
+export function formatUnits2(n: any, dec: any=18) {
   var s = formatUnits(n, dec)
   while(s.length - s.indexOf('.') <= dec) s = `${s}0`
   return s
