@@ -9,7 +9,7 @@ import { ERC2535Library } from  "./../libraries/modules/ERC2535Library.sol";
 
 /**
  * @title MulticallModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that allows multiple calls to be executed against a contract in a single transaction.
  */
 contract MulticallModule is IMulticallModule {

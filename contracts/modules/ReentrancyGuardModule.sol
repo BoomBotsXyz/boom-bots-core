@@ -7,7 +7,7 @@ import { ReentrancyGuardLibrary } from "./../libraries/modules/ReentrancyGuardLi
 
 /**
  * @title ReentrancyGuardModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that helps protect against unwanted reentrancy.
  *
  * This module allows for the retrieval of the reentrancy guard state. Protection is offered in the associated ReentrancyGuardLibrary.

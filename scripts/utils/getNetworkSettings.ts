@@ -1,7 +1,7 @@
 // chainlist
 // 1: ethereum
 // 5: goerli
-// 111555111: sepolia
+// 11155111: sepolia
 // 137: polygon
 // 80001: polygon mumbai
 // 1313161554: aurora
@@ -11,14 +11,14 @@
 
 // given a chainID, returns some settings to use for the network
 export function getNetworkSettings(chainID: number) {
-  const KNOWN_CHAINS = [1, 5, 111555111, 137, 80001, 1313161554, 1313161555, 8453, 84531, 168587773, 31337];
+  const KNOWN_CHAINS = [1, 5, 11155111, 137, 80001, 1313161554, 1313161555, 8453, 84531, 168587773, 31337];
   if(!KNOWN_CHAINS.includes(chainID)) throw new Error(`chainID '${chainID}' unknown`);
 
   // number of blocks to wait to ensure finality
   const CONFIRMATIONS: any = {
     [1]: 1,
     [5]: 1,
-    [111555111]: 1,
+    [11155111]: 1,
     [137]: 5,
     [80001]: 5,
     [1313161554]: 5,
@@ -35,7 +35,7 @@ export function getNetworkSettings(chainID: number) {
   const OVERRIDES: any = {
     [1]: {maxFeePerGas: 40 * ONE_GWEI, maxPriorityFeePerGas: 2 * ONE_GWEI},
     [5]: {},
-    [111555111]: {},
+    [11155111]: {},
     [137]: {maxFeePerGas: 31 * ONE_GWEI, maxPriorityFeePerGas: 31 * ONE_GWEI},
     [80001]: {maxFeePerGas: 2 * ONE_GWEI + 1, maxPriorityFeePerGas: 1 * ONE_GWEI},
     [1313161554]: {},
@@ -50,14 +50,14 @@ export function getNetworkSettings(chainID: number) {
   let overrides = OVERRIDES.hasOwnProperty(chainID) ? OVERRIDES[chainID] : {};
 
   // testnets
-  const TESTNETS: any = [5, 111555111, 80001, 1313161555, 84531, 31337];
+  const TESTNETS: any = [5, 11155111, 80001, 1313161555, 84531, 31337];
   let isTestnet = TESTNETS.includes(chainID);
 
   // url of the provider
   const PROVIDER_URLS: any = {
     [1]: process.env.MAINNET_URL,
     [5]: process.env.GOERLI_URL,
-    [111555111]: process.env.SEPOLIA_URL,
+    [11155111]: process.env.SEPOLIA_URL,
     [137]: process.env.POLYGON_URL,
     [80001]: process.env.MUMBAI_URL,
     [1313161554]: process.env.AURORA_URL,

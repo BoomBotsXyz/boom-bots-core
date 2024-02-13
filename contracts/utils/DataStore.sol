@@ -4,10 +4,10 @@ pragma solidity 0.8.19;
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { Errors } from "./../libraries/Errors.sol";
+import { Calls } from "./../libraries/Calls.sol";
 import { IDataStore } from "./../interfaces/utils/IDataStore.sol";
-import { Ownable2Step } from "./../utils/Ownable2Step.sol";
+import { Blastable } from "./../utils/Blastable.sol";
 
 
 /**
@@ -27,7 +27,7 @@ import { Ownable2Step } from "./../utils/Ownable2Step.sol";
  *
  * The third is a store of fees. The protocol charges a fee on swaps and flash loans, which are then paid out as dividends. The fee percentage and receiver are stored here. The application of the fee is applied differently based on the type. Read the respective modules for more details.
  */
-contract DataStore is IDataStore, Multicall, Ownable2Step {
+contract DataStore is IDataStore, Multicall, Blastable {
 
     /***************************************
     GLOBAL VARIABLES
@@ -343,31 +343,4 @@ contract DataStore is IDataStore, Multicall, Ownable2Step {
             unchecked { ++i; }
         }
     }
-
-    /***************************************
-    TOKEN BALANCE FUNCTIONS
-    ***************************************/
-
-    /**
-     * @notice Rescues tokens that may have been accidentally transferred in.
-     * Can only be called by the contract owner.
-     * @param tokens The tokens to rescue. Can be ETH or ERC20s.
-     */
-    function sweep(address[] calldata tokens) external payable override onlyOwner {
-        for(uint256 i; i < tokens.length; ) {
-            address token = tokens[i];
-            if(token == address(0)) {
-                Address.sendValue(payable(msg.sender), address(this).balance);
-            } else {
-                IERC20 tkn = IERC20(token);
-                SafeERC20.safeTransfer(tkn, msg.sender, tkn.balanceOf(address(this)));
-            }
-            unchecked { ++i; }
-        }
-    }
-
-    /**
-     * @notice Allows this contract to receive the gas token.
-     */
-    receive() external payable override {}
 }

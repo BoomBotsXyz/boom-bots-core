@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, DataStore } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, DataStore, IBlast } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -25,6 +25,8 @@ let networkSettings: any;
 let chainID: number;
 
 const ERC6551_REGISTRY_ADDRESS        = "0x000000006551c19487814612e58FE06813775758";
+const BLAST_ADDRESS                   = "0x4300000000000000000000000000000000000002";
+
 const BOOM_BOTS_NFT_ADDRESS           = "0x2b119FA2796215f627344509581D8F39D742317F";
 const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0xf24f3A8a7D49031eD95EBD13774BA77a6a470b80";
 const MODULE_PACK_100_ADDRESS         = "0xdD0b84cB4DA1a1D1c262Cc4009036417BB3165eb";
@@ -36,6 +38,8 @@ let accountImplementation: BoomBotAccount; // the base implementation for boom b
 let modulePack100: ModulePack100;
 let dataStore: DataStore;
 let factory: BoomBotsFactory;
+
+let iblast: IBlast;
 
 async function main() {
   console.log(`Using ${boombotseth.address} as boombotseth`);
@@ -49,12 +53,15 @@ async function main() {
   if(!isChain(168587773, "blastsepolia")) throw("Only run this on Blast Sepolia or a local fork of Blast Sepolia");
   //await expectDeployed(ERC6551_REGISTRY_ADDRESS)
 
+  iblast = await ethers.getContractAt("IBlast", BLAST_ADDRESS, boombotseth) as IBlast;
+
   await deployBoomBotsNft();
   await deployBoomBotAccount();
   await deployModulePack100();
   await deployDataStore();
   await whitelistModules();
   await deployBoomBotsFactory();
+  await setFactoryInitcode();
   await whitelistFactories();
   await setNftMetadata();
 }
@@ -169,6 +176,49 @@ async function deployBoomBotsFactory() {
     if(chainID != 31337) await verifyContract(factory.address, args);
     if(!!BOOM_BOTS_FACTORY_ADDRESS && factory.address != BOOM_BOTS_FACTORY_ADDRESS) throw new Error(`Deployed BoomBotsFactory to ${factory.address}, expected ${BOOM_BOTS_FACTORY_ADDRESS}`)
   }
+}
+
+async function setFactoryInitcode() {
+  console.log(`Setting factory init code`)
+  const inscribeSighash = "0xde52f07d";
+  let sighashes = calcSighashes(modulePack100, 'ModulePack100')
+  sighashes.push(inscribeSighash)
+  let diamondCutInit = [
+    {
+      facetAddress: modulePack100.address,
+      action: FacetCutAction.Add,
+      functionSelectors: sighashes,
+    },
+  ]
+  let interfaceIDs = [
+    "0x01ffc9a7", // ERC165
+    "0x1f931c1c", // DiamondCut
+    "0x48e2b093", // DiamondLoupe
+    "0x6faff5f1", // ERC6551Account
+    "0x51945447", // ERC6551Executable
+  ]
+  let support = [
+    true,
+    true,
+    true,
+    true,
+    true,
+  ]
+  let botInitializationCode1 = accountImplementation.interface.encodeFunctionData("initialize", [diamondCutInit, dataStore.address]);
+  let mctxdata0 = modulePack100.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
+  let blastcalldata1 = iblast.interface.encodeFunctionData("configureAutomaticYield")
+  let mctxdata1 = modulePack100.interface.encodeFunctionData("execute", [BLAST_ADDRESS, 0, blastcalldata1, 0]);
+  let blastcalldata2 = iblast.interface.encodeFunctionData("configureClaimableGas")
+  let mctxdata2 = modulePack100.interface.encodeFunctionData("execute", [BLAST_ADDRESS, 0, blastcalldata2, 0]);
+  let txdatas = [mctxdata0, mctxdata1, mctxdata2]
+  let botInitializationCode2 = modulePack100.interface.encodeFunctionData("multicall", [txdatas]);
+
+  let tx = await factory.connect(boombotsdeployer).setBotInitializationCode(botInitializationCode1, botInitializationCode2, networkSettings.overrides)
+  console.log('tx')
+  console.log(tx)
+  await tx.wait(networkSettings.confirmations)
+
+  console.log(`Set factory init code`)
 }
 
 async function whitelistFactories() {

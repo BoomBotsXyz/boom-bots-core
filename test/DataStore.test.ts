@@ -24,6 +24,7 @@ const { AddressZero, WeiPerEther, MaxUint256, Zero } = ethers.constants;
 const WeiPerUsdc = BN.from(1_000_000); // 6 decimals
 
 const ERC6551_REGISTRY_ADDRESS = "0x000000006551c19487814612e58FE06813775758";
+const BLAST_ADDRESS            = "0x4300000000000000000000000000000000000002";
 
 const MAGIC_VALUE_0 = "0x00000000";
 const MAGIC_VALUE_IS_VALID_SIGNER = "0x523e3260";
@@ -708,7 +709,7 @@ describe("DataStore", function () {
 
   describe("sweep", function () {
     it("cannot be swept by non owner", async function () {
-      await expect(dataStore.connect(user1).sweep([])).to.be.revertedWithCustomError(dataStore, "NotContractOwner")
+      await expect(dataStore.connect(user1).sweep(user1.address, [])).to.be.revertedWithCustomError(dataStore, "NotContractOwner")
     })
     it("owner can sweep tokens", async function () {
       await user1.sendTransaction({
@@ -722,7 +723,7 @@ describe("DataStore", function () {
       let bal12erc20 = await erc20a.balanceOf(owner.address)
       expect(bal11eth).gt(0)
       expect(bal11erc20).gt(0)
-      let tx = await dataStore.connect(owner).sweep([AddressZero, erc20a.address])
+      let tx = await dataStore.connect(owner).sweep(owner.address, [AddressZero, erc20a.address])
       let bal21eth = await provider.getBalance(dataStore.address)
       let bal21erc20 = await erc20a.balanceOf(dataStore.address)
       let bal22eth = await provider.getBalance(owner.address)
@@ -738,6 +739,7 @@ describe("DataStore", function () {
     it("should initialize correctly", async function () {
       expect(await dataStore.owner()).eq(owner.address);
       expect(await dataStore.pendingOwner()).eq(AddressZero);
+      expect(await dataStore.blast()).eq(BLAST_ADDRESS);
     });
     it("non owner cannot transfer ownership", async function () {
       await expect(dataStore.connect(user1).transferOwnership(user1.address)).to.be.revertedWithCustomError(dataStore, "NotContractOwner");
@@ -762,7 +764,7 @@ describe("DataStore", function () {
       await expect(dataStore.connect(owner).setModuleWhitelist([])).to.be.revertedWithCustomError(dataStore, "NotContractOwner");
       await expect(dataStore.connect(owner).setSwapFees([])).to.be.revertedWithCustomError(dataStore, "NotContractOwner")
       await expect(dataStore.connect(owner).setFlashLoanFees([])).to.be.revertedWithCustomError(dataStore, "NotContractOwner")
-      await expect(dataStore.connect(owner).sweep([])).to.be.revertedWithCustomError(dataStore, "NotContractOwner")
+      await expect(dataStore.connect(owner).sweep(owner.address, [])).to.be.revertedWithCustomError(dataStore, "NotContractOwner")
     });
     it("new owner has ownership rights - named addresses", async function () {
       let namedAddresses = [
@@ -862,7 +864,7 @@ describe("DataStore", function () {
       }
     });
     it("new owner has ownership rights - sweep", async function () {
-      await dataStore.connect(user2).sweep([AddressZero, erc20a.address])
+      await dataStore.connect(user2).sweep(owner.address, [AddressZero, erc20a.address])
     });
     it("non owner cannot renounce ownership", async function () {
       await expect(dataStore.connect(user1).renounceOwnership()).to.be.revertedWithCustomError(dataStore, "NotContractOwner");

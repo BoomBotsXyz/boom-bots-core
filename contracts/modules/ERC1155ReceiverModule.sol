@@ -6,7 +6,7 @@ import { IERC1155ReceiverModule } from "./../interfaces/modules/IERC1155Receiver
 
 /**
  * @title ERC1155ReceiverModule
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A module that allows a contract to receive an ERC1155 token.
  */
 contract ERC1155ReceiverModule is IERC1155ReceiverModule {

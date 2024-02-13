@@ -11,7 +11,7 @@ import { Errors } from "./../Errors.sol";
 
 /**
  * @title ERC6551AccountLibrary
- * @author Blue Matter Tehcnologies
+ * @author Blue Matter Technologies
  * @notice A library that assists with storing and retrieving the gas token.
  */
 library ERC6551AccountLibrary {
