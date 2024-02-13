@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const blasttestnetuser3 = new ethers.Wallet(accounts.blasttestnetuser3.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, DataStore, RingProtocolModuleA, IBlast } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, DataStore, RingProtocolModuleA, IBlast, ERC20BalanceFetcher, GasQuoterModuleA } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -41,6 +41,10 @@ const DATA_STORE_ADDRESS              = "0xaf724B10370130c1E106FdA3da0b71D812A57
 const BOOM_BOTS_FACTORY_ADDRESS       = "0x53A4f1C1b2D9603B3D3ae057B075a0EDC3d7A615";
 const RING_PROTOCOL_MODULE_A_ADDRESS  = "0xD071924d2eD9cF44dB9a62A88A80E9bED9782711";
 
+
+const ERC20_BALANCE_FETCHER_ADDRESS   = "0x3a45f053C289C352bF354Ed3eA45944F1a4aF910"; // v0.1.1
+const GAS_QUOTER_MODULE_A_ADDRESS     = "0x3eA984bda93FbF884c6af77D1f90C3eC01419752"; // v0.1.1
+
 let boomBotsNft: BoomBots;
 let boomBotsNftMC: any;
 let accountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
@@ -48,6 +52,7 @@ let modulePack100: ModulePack100;
 let dataStore: DataStore;
 let factory: BoomBotsFactory;
 let ringProtocolModuleA: RingProtocolModuleA;
+let balanceFetcher: ERC20BalanceFetcher;
 
 let abi = getCombinedAbi([
   "artifacts/contracts/accounts/BoomBotAccount.sol/BoomBotAccount.json",
@@ -76,18 +81,23 @@ async function main() {
   iblast = await ethers.getContractAt("IBlast", BLAST_ADDRESS, boombotseth) as IBlast;
 
   ringProtocolModuleA = await ethers.getContractAt("RingProtocolModuleA", RING_PROTOCOL_MODULE_A_ADDRESS, boombotseth) as RingProtocolModuleA;
+  balanceFetcher = await ethers.getContractAt("ERC20BalanceFetcher", ERC20_BALANCE_FETCHER_ADDRESS, boombotseth) as ERC20BalanceFetcher;
 
   //await useBot129_1();
   //await useBot129_2();
   //await useBot129_3();
   //await useBot129_4();
-  await useBot129_5();
+  //await useBot129_5();
   //await useBot129_6();
-  await useBot129_7();
+  //await useBot129_7();
   await useBot129_5();
+
+  //await useBot129_8();
+  await useBot129_9();
+  await readBalanceFactory();
 }
 
-// install and execute
+// install and execute ring protocol module a
 async function useBot129_1() {
   console.log("Using bot 129_1")
 
@@ -117,7 +127,7 @@ async function useBot129_1() {
   console.log("Used bot 129_1")
 }
 
-// execute
+// execute ring protocol module a
 async function useBot129_2() {
   console.log("Using bot 129_2")
   let ethAmount1 = WeiPerEther.mul(5).div(1000)
@@ -149,7 +159,7 @@ async function useBot129_4() {
   console.log("Used bot 129_4")
 }
 
-// view rewards
+// view gas rewards
 async function useBot129_5() {
   console.log("Using bot 129_5")
   var res1 = await iblast.readClaimableYield(botAddress129)
@@ -197,6 +207,89 @@ async function useBot129_7() {
   console.log("Used bot 129_7")
 }
 
+// install gas claim query methods
+async function useBot129_8() {
+  console.log("Using bot 129_8")
+  let sighashes = [
+    '0x7cb81437', // quoteClaimAllGas()
+    '0xc3eb9fc5', // quoteClaimAllGasWithRevert()
+    '0x97370879', // quoteClaimMaxGas()
+    '0x1f15cbde', // quoteClaimMaxGasWithRevert()
+  ]
+  let tx = await accountProxy129.connect(blasttestnetuser3).diamondCut([{
+    facetAddress: GAS_QUOTER_MODULE_A_ADDRESS,
+    action: FacetCutAction.Add,
+    functionSelectors: sighashes
+  }], AddressZero, "0x", {...networkSettings.overrides, gasLimit: 1_000_000});
+  console.log('tx')
+  console.log(tx)
+  await tx.wait(networkSettings.confirmations)
+  console.log("Used bot 129_8")
+}
+
+const ETH_ADDRESS                = "0x0000000000000000000000000000000000000000";
+const ALL_CLAIMABLE_GAS_ADDRESS  = "0x0000000000000000000000000000000000000001";
+const MAX_CLAIMABLE_GAS_ADDRESS  = "0x0000000000000000000000000000000000000002";
+const WETH_ADDRESS               = "0x4200000000000000000000000000000000000023";
+const USDB_ADDRESS               = "0x4200000000000000000000000000000000000022";
+const USDC_ADDRESS               = "0xF19A5b56b419170Aa2ee49E5c9195F5902D39BF1";
+const USDT_ADDRESS               = "0xD8F542D710346DF26F28D6502A48F49fB2cFD19B";
+const DAI_ADDRESS                = "0x9C6Fc5bF860A4a012C9De812002dB304AD04F581";
+const BOLT_ADDRESS               = "0x1B0cC80F4E2A7d205518A1Bf36de5bED686662FE";
+const RGB_ADDRESS                = "0x7647a41596c1Ca0127BaCaa25205b310A0436B4C";
+
+const TOKEN_LIST = [
+  ETH_ADDRESS,
+  ALL_CLAIMABLE_GAS_ADDRESS,
+  MAX_CLAIMABLE_GAS_ADDRESS,
+  WETH_ADDRESS,
+  USDB_ADDRESS,
+  USDC_ADDRESS,
+  USDT_ADDRESS,
+  DAI_ADDRESS,
+  BOLT_ADDRESS,
+  RGB_ADDRESS,
+]
+
+// get token balances
+async function useBot129_9() {
+  console.log("Using bot 129_9")
+
+  let balances = await balanceFetcher.callStatic.fetchBalances(botAddress129, TOKEN_LIST, {...networkSettings, gasLimit: 30_000_000})
+  for(let i = 0; i < TOKEN_LIST.length; i++) {
+    console.log(`${TOKEN_LIST[i]}: ${balances[i].toString()}`)
+  }
+
+  var hardcall = false
+  if(hardcall) {
+    let tx = await balanceFetcher.fetchBalances(botAddress129, TOKEN_LIST)
+    console.log('tx')
+    console.log(tx)
+    await tx.wait(networkSettings.confirmations)
+  }
+
+  console.log("Used bot 129_9")
+}
+
+// read factory balances
+async function readBalanceFactory() {
+  console.log("Reading balances of factory")
+
+  let balances = await balanceFetcher.callStatic.fetchBalances(BOOM_BOTS_FACTORY_ADDRESS, TOKEN_LIST, {...networkSettings, gasLimit: 30_000_000})
+  for(let i = 0; i < TOKEN_LIST.length; i++) {
+    console.log(`${TOKEN_LIST[i]}: ${balances[i].toString()}`)
+  }
+
+  var hardcall = false
+  if(hardcall) {
+    let tx = await balanceFetcher.fetchBalances(BOOM_BOTS_FACTORY_ADDRESS, TOKEN_LIST)
+    console.log('tx')
+    console.log(tx)
+    await tx.wait(networkSettings.confirmations)
+  }
+
+  console.log("Read balances of factory")
+}
 
 main()
     .then(() => process.exit(0))
