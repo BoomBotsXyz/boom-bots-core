@@ -223,6 +223,9 @@ describe("BoomBotAccountModulePack100", function () {
   });
 
   describe("bot creation via factory", function () {
+    it("can get factory sighashes", async function () {
+      let sighashes = calcSighashes(factory, 'BoomBotsFactory')
+    })
     it("owner can whitelist", async function () {
       let whitelist = [
         {

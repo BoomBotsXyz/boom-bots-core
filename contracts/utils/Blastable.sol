@@ -22,12 +22,6 @@ import { Calls } from "./../libraries/Calls.sol";
 abstract contract Blastable is Ownable2Step, IBlastable {
 
     /***************************************
-    VARIABLES
-    ***************************************/
-
-    address internal _blast = 0x4300000000000000000000000000000000000002;
-
-    /***************************************
     VIEW FUNCTIONS
     ***************************************/
 
@@ -35,8 +29,8 @@ abstract contract Blastable is Ownable2Step, IBlastable {
      * @notice Returns the address of the Blast contract.
      * @return blast_ The address of the Blast contract.
      */
-    function blast() external view override returns (address blast_) {
-        blast_ = _blast;
+    function blast() public view virtual override returns (address blast_) {
+        blast_ = 0x4300000000000000000000000000000000000002;
     }
 
     /***************************************
@@ -50,7 +44,7 @@ abstract contract Blastable is Ownable2Step, IBlastable {
      * @return result The result of the call.
      */
     function callBlast(bytes calldata data) external payable virtual override onlyOwner returns (bytes memory result) {
-        result = Calls.functionCall(_blast, data);
+        result = Calls.functionCall(blast(), data);
     }
 
     /**
@@ -60,7 +54,7 @@ abstract contract Blastable is Ownable2Step, IBlastable {
      * @return amountClaimed The amount of gas claimed.
      */
     function claimMaxGas(address receiver) external payable virtual override onlyOwner returns (uint256 amountClaimed) {
-        amountClaimed = IBlast(_blast).claimMaxGas(address(this), receiver);
+        amountClaimed = IBlast(blast()).claimMaxGas(address(this), receiver);
     }
 
     /**
@@ -70,7 +64,7 @@ abstract contract Blastable is Ownable2Step, IBlastable {
      * @return amountClaimed The amount of gas claimed.
      */
     function claimAllGas(address receiver) external payable virtual override onlyOwner returns (uint256 amountClaimed) {
-        amountClaimed = IBlast(_blast).claimAllGas(address(this), receiver);
+        amountClaimed = IBlast(blast()).claimAllGas(address(this), receiver);
     }
 
     /***************************************
@@ -127,7 +121,7 @@ abstract contract Blastable is Ownable2Step, IBlastable {
      * This _should_ only be called via [`quoteClaimAllGas()`](#quoteclaimallgas).
      */
     function quoteClaimAllGasWithRevert() external payable virtual override {
-        uint256 quoteAmount = IBlast(_blast).claimAllGas(address(this), address(this));
+        uint256 quoteAmount = IBlast(blast()).claimAllGas(address(this), address(this));
         revert Errors.RevertForAmount(quoteAmount);
     }
 
@@ -152,7 +146,7 @@ abstract contract Blastable is Ownable2Step, IBlastable {
      * This _should_ only be called via [`quoteClaimMaxGas()`](#quoteclaimmaxgas).
      */
     function quoteClaimMaxGasWithRevert() external payable virtual override {
-        uint256 quoteAmount = IBlast(_blast).claimMaxGas(address(this), address(this));
+        uint256 quoteAmount = IBlast(blast()).claimMaxGas(address(this), address(this));
         revert Errors.RevertForAmount(quoteAmount);
     }
 

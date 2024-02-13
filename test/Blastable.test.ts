@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore, MockGasBurner, IBlast, SometimesRevertAccount } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore, MockGasBurner, MockGasBurner2, IBlast, MockBlast, SometimesRevertAccount } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -36,7 +36,9 @@ describe("Blastable", function () {
   let user5: SignerWithAddress;
 
   let gasBurner: MockGasBurner; // inherits blastable
+  let gasBurner2: MockGasBurner2; // inherits blastable
   let iblast: any;
+  let mockblast: any;
 
   let erc20a: MockERC20;
   let erc20b: MockERC20;
@@ -68,11 +70,17 @@ describe("Blastable", function () {
   });
 
   describe("setup", function () {
-    it("can deploy data store", async function () {
+    it("can deploy gas burner", async function () {
       gasBurner = await deployContract(deployer, "MockGasBurner", [owner.address]);
       await expectDeployed(gasBurner.address);
       expect(await gasBurner.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy MockGasBurner", gasBurner.deployTransaction);
+    })
+    it("can deploy gas burner 2", async function () {
+      gasBurner2 = await deployContract(deployer, "MockGasBurner2", [owner.address]);
+      await expectDeployed(gasBurner.address);
+      expect(await gasBurner.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy MockGasBurner2", gasBurner2.deployTransaction);
     })
     it("should initialize correctly", async function () {
       expect(await gasBurner.owner()).eq(owner.address);
@@ -164,7 +172,7 @@ describe("Blastable", function () {
     })
   });
 
-  describe("blast", function () {
+  describe("blastable 1", function () {
     var amount:any
     before(async function () {
       console.log("Warning: These tests will fail. The blast address cannot be called on local testnet.")
@@ -319,6 +327,187 @@ describe("Blastable", function () {
       try {
         //console.log("in quoteClaimMaxGasWithRevert try 1")
         amount = await gasBurner.connect(owner).quoteClaimMaxGasWithRevert()
+        //console.log("in quoteClaimMaxGasWithRevert try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in quoteClaimMaxGasWithRevert catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+      // reverted with reason string 'must withdraw non-zero amount'
+    })
+  })
+
+  describe("blastable 2", function () {
+    var amount:any
+    before(async function () {
+      console.log("Warning: These tests will fail. The blast address cannot be called on local testnet.")
+      console.log("We're just going to call them here, then do the real tests in prod.")
+      gasBurner2 = await deployContract(deployer, "MockGasBurner2", [owner.address]);
+      await gasBurner2.connect(owner).transferOwnership(owner.address);
+
+      mockblast = await deployContract(deployer, "MockBlast", []);
+      await mockblast.connect(user1).claimAllGas(user1.address, user1.address);
+      await mockblast.connect(user1).claimMaxGas(user1.address, user1.address);
+      await mockblast.connect(user1).claimAllGas(user2.address, user3.address);
+      await mockblast.connect(user1).claimMaxGas(user2.address, user3.address);
+
+      await gasBurner2.setBlast(mockblast.address)
+      let blastcalldata1 = iblast.interface.encodeFunctionData("configureAutomaticYield")
+      let mctxdata1 = gasBurner2.interface.encodeFunctionData("callBlast", [blastcalldata1]);
+      let blastcalldata2 = iblast.interface.encodeFunctionData("configureClaimableGas")
+      let mctxdata2 = gasBurner2.interface.encodeFunctionData("callBlast", [blastcalldata2]);
+      let txdatas = [mctxdata1, mctxdata2]
+      await gasBurner2.connect(owner).multicall(txdatas)
+      await user1.sendTransaction({
+        to: gasBurner2.address,
+        value: WeiPerEther
+      })
+    })
+    it("callBlast 0", async function () {
+      let calldata = "0x"
+      try {
+        //console.log("in callBlast 0 try 1")
+        amount = await gasBurner2.connect(owner).callBlast(calldata)
+        //console.log("in callBlast 0 try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in callBlast 0 catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+    })
+    it("callBlast 1", async function () {
+      let calldata = iblast.interface.encodeFunctionData("configureAutomaticYield")
+      //console.log(calldata)
+      try {
+        //console.log("in callBlast 1 try 1")
+        amount = await gasBurner2.connect(owner).callBlast(calldata)
+        //console.log("in callBlast 1 try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in callBlast 1 catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+    })
+    it("callBlast 2", async function () {
+      //var gasParams = await iblast.readGasParams(gasBurner2.address)
+      //console.log({gasParams})
+      let calldata = iblast.interface.encodeFunctionData("configureClaimableGas")
+      //console.log(calldata)
+      try {
+        //console.log("in callBlast 2 try 1")
+        amount = await gasBurner2.connect(owner).callBlast(calldata)
+        //console.log("in callBlast 2 try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in callBlast 2 catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+      //var gasParams = await iblast.readGasParams(gasBurner2.address)
+      //console.log({gasParams})
+      await user1.sendTransaction({
+        to: gasBurner2.address,
+        value: WeiPerEther
+      })
+      //var gasParams = await iblast.readGasParams(gasBurner2.address)
+      //console.log({gasParams})
+      await gasBurner2.connect(owner).burnGas(10)
+      const blockTimestamp = (await provider.getBlock('latest')).timestamp
+      await provider.send("evm_mine", [blockTimestamp + 60]);
+      await gasBurner2.connect(owner).burnGas(10)
+      //var gasParams = await iblast.readGasParams(gasBurner2.address)
+      //console.log({gasParams})
+    })
+    it("burn gas", async function () {
+      await gasBurner2.connect(owner).burnGas(1)
+    })
+    it("claimMaxGas", async function () {
+      try {
+        //console.log("in claimMaxGas try 1")
+        amount = await gasBurner2.connect(owner).claimMaxGas(owner.address)
+        //console.log("in claimMaxGas try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in claimMaxGas catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+    })
+    it("claimAllGas", async function () {
+      try {
+        //console.log("in claimAllGas try 1")
+        amount = await gasBurner2.connect(owner).claimAllGas(owner.address)
+        //console.log("in claimAllGas try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in claimAllGas catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+    })
+    it("quoteClaimAllGas", async function () {
+      try {
+        //console.log("in quoteClaimAllGas try 1")
+        amount = await gasBurner2.connect(owner).quoteClaimAllGas()
+        //console.log("in quoteClaimAllGas try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in quoteClaimAllGas catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+    })
+    it("quoteClaimAllGasWithRevert", async function () {
+      await gasBurner2.connect(owner).burnGas(10)
+      const blockTimestamp = (await provider.getBlock('latest')).timestamp
+      await provider.send("evm_mine", [blockTimestamp + 60]);
+      await gasBurner2.connect(owner).burnGas(10)
+
+      try {
+        //console.log("in quoteClaimAllGasWithRevert try 1")
+        amount = await gasBurner2.connect(owner).quoteClaimAllGasWithRevert()
+        //console.log("in quoteClaimAllGasWithRevert try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in quoteClaimAllGasWithRevert catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+      // reverted with reason string 'must withdraw non-zero amount'
+    })
+    it("quoteClaimMaxGas", async function () {
+      try {
+        //console.log("in quoteClaimMaxGas try 1")
+        amount = await gasBurner2.connect(owner).quoteClaimMaxGas()
+        //console.log("in quoteClaimMaxGas try 2")
+        //console.log(amount)
+      } catch(e) {
+        //console.error("in quoteClaimMaxGas catch")
+        //console.error(e)
+        //amount = e.errorArgs.amount
+        //console.log(amount)
+      }
+    })
+    it("quoteClaimMaxGasWithRevert", async function () {
+      await gasBurner2.connect(owner).burnGas(10)
+      const blockTimestamp = (await provider.getBlock('latest')).timestamp
+      await provider.send("evm_mine", [blockTimestamp + 60]);
+      await gasBurner2.connect(owner).burnGas(10)
+
+      try {
+        //console.log("in quoteClaimMaxGasWithRevert try 1")
+        amount = await gasBurner2.connect(owner).quoteClaimMaxGasWithRevert()
         //console.log("in quoteClaimMaxGasWithRevert try 2")
         //console.log(amount)
       } catch(e) {
