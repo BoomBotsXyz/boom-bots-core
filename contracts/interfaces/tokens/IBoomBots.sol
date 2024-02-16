@@ -85,7 +85,7 @@ interface IBoomBots is IERC721Enumerable {
      */
     function createBot(
         address implementation
-    ) external returns (
+    ) external payable returns (
         uint256 botID,
         address botAddress
     );
@@ -112,7 +112,7 @@ interface IBoomBots is IERC721Enumerable {
      * Can only be called by the contract owner.
      * @param params The list of factories and if they should be whitelisted or blacklisted.
      */
-    function setWhitelist(SetWhitelistParam[] memory params) external;
+    function setWhitelist(SetWhitelistParam[] memory params) external payable;
 
     /***************************************
     METADATA FUNCTIONS

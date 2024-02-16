@@ -21,6 +21,17 @@ import { Calls } from "./../libraries/Calls.sol";
  */
 abstract contract Blastable is Ownable2Step, IBlastable {
 
+    /**
+     * @notice Constructs the Blastable contract.
+     * Configures the contract to receive automatic yield and claimable gas.
+     */
+    constructor() {
+        // allow these calls to fail. check status after deployment and call again if necessary
+        address b = blast();
+        b.call(abi.encodeWithSignature("configureAutomaticYield()"));
+        b.call(abi.encodeWithSignature("configureClaimableGas()"));
+    }
+
     /***************************************
     VIEW FUNCTIONS
     ***************************************/
@@ -79,7 +90,7 @@ abstract contract Blastable is Ownable2Step, IBlastable {
      * @param tokens The tokens to rescue. Can be ETH or ERC20s.
      */
     function sweep(address receiver, address[] calldata tokens) external payable virtual override onlyOwner {
-        for(uint256 i; i < tokens.length; ) {
+        for(uint256 i = 0; i < tokens.length; ) {
             address token = tokens[i];
             if(token == address(0)) {
                 Calls.sendValue(payable(receiver), address(this).balance);

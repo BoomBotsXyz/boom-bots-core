@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: none
 pragma solidity 0.8.19;
 
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { Multicall } from "./../../utils/Multicall.sol";
 import { Blastable } from "./../../utils/Blastable.sol";
 import { Calls } from "./../../libraries/Calls.sol";
 import { Errors } from "./../../libraries/Errors.sol";
@@ -30,7 +30,7 @@ contract MockGasBurner is Multicall, Blastable {
      * @param numIters The number of iterations of the burn loop to run.
      */
     function burnGas(uint256 numIters) external {
-        for(uint256 i; i < numIters; ) {
+        for(uint256 i = 0; i < numIters; ) {
             unchecked {
                 ++i;
                 x = (x * 2) + i;

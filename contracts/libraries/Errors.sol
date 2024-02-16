@@ -18,6 +18,8 @@ library Errors {
     error OnlyCallsAllowed();
     /// @notice Thrown when using an address with no code.
     error NotAContract();
+    /// @notice Thrown when a contract deployment fails.
+    error ContractNotDeployed();
 
     // ownership & authentication errors
     /// @notice Thrown when calling a function reserved for the contract owner.
@@ -66,6 +68,8 @@ library Errors {
     error FactoryNotWhitelisted();
     /// @notice Thrown when call a contract that has been paused.
     error ContractPaused();
+    /// @notice Thrown when using a factory and a creation settings that has been paused.
+    error CreationSettingsPaused();
 
     // erc2535 errors
     /// @notice Thrown when installing a function that is already installed.
@@ -86,4 +90,9 @@ library Errors {
     error UnknownError();
     /// @notice Thrown when a revert was intentionally thrown in order to return a value.
     error RevertForAmount(uint256 amount);
+
+    /// @notice Thrown when calling a function on a proxy that should only be called on the implementation.
+    error NotImplementation();
+    /// @notice Thrown when calling a function on an implementation contract that can only be called by the gas collector.
+    error NotImplementationGasCollector();
 }

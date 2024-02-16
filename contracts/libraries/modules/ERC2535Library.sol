@@ -87,7 +87,7 @@ library ERC2535Library {
         ERC2535LibraryStorage storage erc2535ls = erc2535LibraryStorage();
         uint256 numFacets = erc2535ls.facetAddresses.length;
         facets_ = new Facet[](numFacets);
-        for (uint256 i; i < numFacets; ) {
+        for (uint256 i = 0; i < numFacets; ) {
             address facetAddress_ = erc2535ls.facetAddresses[i];
             facets_[i].facetAddress = facetAddress_;
             facets_[i].functionSelectors = erc2535ls.facetFunctionSelectors[facetAddress_].functionSelectors;
@@ -316,25 +316,15 @@ library ERC2535Library {
     }
 
     /**
-     * @notice Reverts execution if the address has no code.
-     * @param _contract The address to query code.
-     */
-    function enforceHasContractCode(address _contract) internal view {
-        uint256 contractSize;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            contractSize := extcodesize(_contract)
-        }
-        if(contractSize == 0) revert Errors.NotAContract();
-    }
-
-    /**
      * @notice Reverts execution if the module cannot be used.
      * Only enforced on diamondCut.
      * @param module The address of the module to use.
      */
     function enforceCanUseModule(address module) internal view {
-        enforceHasContractCode(module);
+        // account should be able to install functions from its implementation
+        if(module == address(this)) return;
+        // enforcement on other modules
+        Calls.verifyHasCode(module);
         address payable dataStore = payable(DataStoreLibrary.dataStore());
         if(!IDataStore(dataStore).moduleCanBeInstalled(module)) revert Errors.ModuleNotWhitelisted();
     }

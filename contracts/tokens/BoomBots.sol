@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { Multicall } from "./../utils/Multicall.sol";
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Errors } from "./../libraries/Errors.sol";
@@ -127,7 +127,7 @@ contract BoomBots is IBoomBots, ERC721Enumerable, Blastable, Multicall {
      */
     function createBot(
         address implementation
-    ) external override returns (
+    ) external payable override returns (
         uint256 botID,
         address botAddress
     ) {
@@ -173,8 +173,8 @@ contract BoomBots is IBoomBots, ERC721Enumerable, Blastable, Multicall {
      * Can only be called by the contract owner.
      * @param params The list of factories and if they should be whitelisted or blacklisted.
      */
-    function setWhitelist(SetWhitelistParam[] memory params) external override onlyOwner {
-        for(uint256 i; i < params.length; ) {
+    function setWhitelist(SetWhitelistParam[] memory params) external payable override onlyOwner {
+        for(uint256 i = 0; i < params.length; ) {
             address factory = params[i].factory;
             bool shouldWhitelist = params[i].shouldWhitelist;
             _factoryIsWhitelisted[factory] = shouldWhitelist;

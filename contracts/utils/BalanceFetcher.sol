@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: none
 pragma solidity 0.8.19;
 
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { Multicall } from "./Multicall.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IBlastable } from "./../interfaces/utils/IBlastable.sol";
+import { IBalanceFetcher } from "./../interfaces/utils/IBalanceFetcher.sol";
 import { Blastable } from "./Blastable.sol";
 
 
 /**
- * @title ERC20BalanceFetcher
+ * @title BalanceFetcher
  * @author Blue Matter Technologies
- * @notice The ERC20BalanceFetcher is a purely utility contract that helps offchain components efficiently fetch an account's balance of tokens.
+ * @notice The BalanceFetcher is a purely utility contract that helps offchain components efficiently fetch an account's balance of tokens.
  */
-contract ERC20BalanceFetcher is Blastable, Multicall {
+contract BalanceFetcher is IBalanceFetcher, Blastable, Multicall {
 
     /**
-     * @notice Constructs the ERC20BalanceFetcher contract.
+     * @notice Constructs the BalanceFetcher contract.
      * @param _owner The owner of the contract.
      */
     constructor(address _owner) {
@@ -28,9 +28,9 @@ contract ERC20BalanceFetcher is Blastable, Multicall {
      * @param account The account to query.
      * @param tokens The list of tokens to query.
      */
-    function fetchBalances(address account, address[] calldata tokens) external returns (uint256[] memory balances) {
+    function fetchBalances(address account, address[] calldata tokens) external payable override returns (uint256[] memory balances) {
         balances = new uint256[](tokens.length);
-        for(uint256 i; i < tokens.length; ) {
+        for(uint256 i = 0; i < tokens.length; ) {
             address token = tokens[i];
             if(token == address(0)) balances[i] = account.balance;
             else if(token == address(1)) balances[i] = _tryQuoteClaimAllGas(account);

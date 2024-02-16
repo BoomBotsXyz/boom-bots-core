@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: none
 pragma solidity 0.8.19;
 
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { Multicall } from "./../utils/Multicall.sol";
 import { Calls } from "./../libraries/Calls.sol";
 import { Errors } from "./../libraries/Errors.sol";
 import { IBoomBots } from "./../interfaces/tokens/IBoomBots.sol";
