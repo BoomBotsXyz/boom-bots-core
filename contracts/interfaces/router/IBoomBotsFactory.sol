@@ -15,36 +15,40 @@ interface IBoomBotsFactory {
     EVENTS
     ***************************************/
 
-    /// @notice Emitted when the bot implementation is set.
-    event BotImplementationSet(address indexed botImplementation);
-    /// @notice Emitted when the bot initialization code is set.
-    event BotInitializationCodeSet(bytes botInitializationCode1, bytes botInitializationCode2);
-    /// @notice Emitted when the pause state is set.
-    event PauseSet(bool status);
+    /// @notice Emitted when a new BotCreationSettings is posted.
+    event BotCreationSettingsPosted(uint256 indexed creationSettingsID);
+    /// @notice Emitted when a new BotCreationSettings is paused or unpaused.
+    event BotCreationSettingsPaused(uint256 indexed creationSettingsID, bool isPaused);
 
     /***************************************
     VIEW FUNCTIONS
     ***************************************/
 
+    struct BotCreationSettings {
+      address botImplementation;
+      bytes[] initializationCalls;
+      bool isPaused;
+    }
+
+    /**
+     * @notice Gets the number of bot creation settings.
+     * @return count The count.
+     */
+    function getBotCreationSettingsCount() external view returns (uint256 count);
+
     /**
      * @notice Gets the bot creation settings.
      * @return botNft The BoomBots contract.
      * @return botImplementation The bot implementation.
-     * @return botInitializationCode1 The first part of the bot initialization code.
-     * @return botInitializationCode2 The second part of the bot initialization code.
+     * @return initializationCalls The calls to initialize the bot.
+     * @return isPaused True if these creation settings are paused, false otherwise.
      */
-    function getBotCreationSettings() external view returns (
+    function getBotCreationSettings(uint256 creationSettingsID) external view returns (
         address botNft,
         address botImplementation,
-        bytes memory botInitializationCode1,
-        bytes memory botInitializationCode2
+        bytes[] memory initializationCalls,
+        bool isPaused
     );
-
-    /**
-     * @notice Returns true if creation of new bots via this factory is paused.
-     * @return isPaused_ True if creation is paused, false otherwise.
-     */
-    function isPaused() external view returns (bool isPaused_);
 
     /***************************************
     CREATE BOT FUNCTIONS
@@ -56,35 +60,48 @@ interface IBoomBotsFactory {
      * @return botID The ID of the newly created bot.
      * @return botAddress The address of the newly created bot.
      */
-    function createBot() external payable returns (uint256 botID, address botAddress);
+    function createBot(uint256 creationSettingsID) external payable returns (uint256 botID, address botAddress);
 
     /**
      * @notice Creates a new bot.
      * The new bot will be transferred to `msg.sender`.
-     * @param callData Extra data to pass to the bot after it is created.
+     * @param callDatas Extra data to pass to the bot after it is created.
      * @return botID The ID of the newly created bot.
      * @return botAddress The address of the newly created bot.
      */
-    function createBot(bytes calldata callData) external payable returns (uint256 botID, address botAddress);
+    function createBot(uint256 creationSettingsID, bytes[] calldata callDatas) external payable returns (uint256 botID, address botAddress);
+
+    /**
+     * @notice Creates a new bot.
+     * @param receiver The address to mint the new bot to.
+     * @return botID The ID of the newly created bot.
+     * @return botAddress The address of the newly created bot.
+     */
+    function createBot(uint256 creationSettingsID, address receiver) external payable returns (uint256 botID, address botAddress);
+
+    /**
+     * @notice Creates a new bot.
+     * @param receiver The address to mint the new bot to.
+     * @param callDatas Extra data to pass to the bot after it is created.
+     * @return botID The ID of the newly created bot.
+     * @return botAddress The address of the newly created bot.
+     */
+    function createBot(uint256 creationSettingsID, bytes[] calldata callDatas, address receiver) external payable returns (uint256 botID, address botAddress);
 
     /***************************************
     OWNER FUNCTIONS
     ***************************************/
 
     /**
-     * @notice Sets the bot implementation.
+     * @notice Posts a new BotCreationSettings.
      * Can only be called by the contract owner.
-     * @param botImplementation The address of the bot implementation.
+     * @param creationSettings The new creation settings to post.
      */
-    function setBotImplementationAddress(address botImplementation) external payable;
-
-    /**
-     * @notice Sets the bot initialization code.
-     * Can only be called by the contract owner.
-     * @param botInitializationCode1 The first part of the bot initialization code.
-     * @param botInitializationCode2 The second part of the bot initialization code.
-     */
-    function setBotInitializationCode(bytes memory botInitializationCode1, bytes memory botInitializationCode2) external payable;
+    function postBotCreationSettings(
+        BotCreationSettings calldata creationSettings
+    ) external payable returns (
+        uint256 creationSettingsID
+    );
 
     /**
      * @notice Sets the pause state of the contract.
@@ -92,5 +109,5 @@ interface IBoomBotsFactory {
      * Can only be called by the contract owner.
      * @param status True to pause, false to unpause.
      */
-    function setPaused(bool status) external payable;
+    function setPaused(uint256 creationSettingsID, bool status) external payable;
 }

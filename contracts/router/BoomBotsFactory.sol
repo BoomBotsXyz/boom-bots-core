@@ -18,31 +18,27 @@ import { Blastable } from "./../utils/Blastable.sol";
  */
 contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
 
+    /***************************************
+    STATE VARIABLES
+    ***************************************/
+
     address internal _botNft;
-    address internal _botImplementation;
-    bytes internal _botInitializationCode1;
-    bytes internal _botInitializationCode2;
-    bool internal _isPaused;
+
+    mapping(uint256 => BotCreationSettings) internal _botCreationSettings;
+
+    uint256 internal _botCreationSettingsCount;
 
     /**
      * @notice Constructs the factory contract.
      * @param owner_ The contract owner.
      * @param botNft The BoomBots contract.
-     * @param botImplementation The bot implementation.
-     * @param botInitializationCode1 The first part of the bot initialization code.
-     * @param botInitializationCode2 The second part of the bot initialization code.
      */
     constructor(
         address owner_,
-        address botNft,
-        address botImplementation,
-        bytes memory botInitializationCode1,
-        bytes memory botInitializationCode2
+        address botNft
     ) {
         _transferOwnership(owner_);
         _botNft = botNft;
-        _setBotImplementationAddress(botImplementation);
-        _setBotInitializationCode(botInitializationCode1, botInitializationCode2);
     }
 
     /***************************************
@@ -50,30 +46,32 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
     ***************************************/
 
     /**
-     * @notice Gets the bot creation settings.
-     * @return botNft The BoomBots contract.
-     * @return botImplementation The bot implementation.
-     * @return botInitializationCode1 The first part of the bot initialization code.
-     * @return botInitializationCode2 The second part of the bot initialization code.
+     * @notice Gets the number of bot creation settings.
+     * @return count The count.
      */
-    function getBotCreationSettings() external view override returns (
-        address botNft,
-        address botImplementation,
-        bytes memory botInitializationCode1,
-        bytes memory botInitializationCode2
-    ) {
-        botNft = _botNft;
-        botImplementation = _botImplementation;
-        botInitializationCode1 = _botInitializationCode1;
-        botInitializationCode2 = _botInitializationCode2;
+    function getBotCreationSettingsCount() external view override returns (uint256 count) {
+        return _botCreationSettingsCount;
     }
 
     /**
-     * @notice Returns true if creation of new bots via this factory is paused.
-     * @return isPaused_ True if creation is paused, false otherwise.
+     * @notice Gets the bot creation settings.
+     * @return botNft The BoomBots contract.
+     * @return botImplementation The bot implementation.
+     * @return initializationCalls The calls to initialize the bot.
+     * @return isPaused True if these creation settings are paused, false otherwise.
      */
-    function isPaused() external view override returns (bool isPaused_) {
-        return _isPaused;
+    function getBotCreationSettings(uint256 creationSettingsID) external view override returns (
+        address botNft,
+        address botImplementation,
+        bytes[] memory initializationCalls,
+        bool isPaused
+    ) {
+        if(creationSettingsID == 0 || creationSettingsID > _botCreationSettingsCount) revert Errors.OutOfRange();
+        botNft = _botNft;
+        BotCreationSettings memory creationSettings = _botCreationSettings[creationSettingsID];
+        botImplementation = creationSettings.botImplementation;
+        initializationCalls = creationSettings.initializationCalls;
+        isPaused = creationSettings.isPaused;
     }
 
     /***************************************
@@ -86,24 +84,54 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
      * @return botID The ID of the newly created bot.
      * @return botAddress The address of the newly created bot.
      */
-    function createBot() external payable override returns (uint256 botID, address botAddress) {
+    function createBot(uint256 creationSettingsID) external payable override returns (uint256 botID, address botAddress) {
         IBoomBots botNft = IBoomBots(_botNft);
-        (botID, botAddress) = _createBot(botNft);
+        (botID, botAddress) = _createBot(botNft, creationSettingsID);
+        _optionalSendToBot(botAddress);
         botNft.transferFrom(address(this), msg.sender, botID);
     }
 
     /**
      * @notice Creates a new bot.
      * The new bot will be transferred to `msg.sender`.
-     * @param callData Extra data to pass to the bot after it is created.
+     * @param callDatas Extra data to pass to the bot after it is created.
      * @return botID The ID of the newly created bot.
      * @return botAddress The address of the newly created bot.
      */
-    function createBot(bytes calldata callData) external payable override returns (uint256 botID, address botAddress) {
+    function createBot(uint256 creationSettingsID, bytes[] calldata callDatas) external payable override returns (uint256 botID, address botAddress) {
         IBoomBots botNft = IBoomBots(_botNft);
-        (botID, botAddress) = _createBot(botNft);
-        _callBot(botAddress, callData);
+        (botID, botAddress) = _createBot(botNft, creationSettingsID);
+        _multicallBot(botAddress, callDatas);
+        _optionalSendToBot(botAddress);
         botNft.transferFrom(address(this), msg.sender, botID);
+    }
+
+    /**
+     * @notice Creates a new bot.
+     * @param receiver The address to mint the new bot to.
+     * @return botID The ID of the newly created bot.
+     * @return botAddress The address of the newly created bot.
+     */
+    function createBot(uint256 creationSettingsID, address receiver) external payable override returns (uint256 botID, address botAddress) {
+        IBoomBots botNft = IBoomBots(_botNft);
+        (botID, botAddress) = _createBot(botNft, creationSettingsID);
+        _optionalSendToBot(botAddress);
+        botNft.transferFrom(address(this), receiver, botID);
+    }
+
+    /**
+     * @notice Creates a new bot.
+     * @param receiver The address to mint the new bot to.
+     * @param callDatas Extra data to pass to the bot after it is created.
+     * @return botID The ID of the newly created bot.
+     * @return botAddress The address of the newly created bot.
+     */
+    function createBot(uint256 creationSettingsID, bytes[] calldata callDatas, address receiver) external payable override returns (uint256 botID, address botAddress) {
+        IBoomBots botNft = IBoomBots(_botNft);
+        (botID, botAddress) = _createBot(botNft, creationSettingsID);
+        _multicallBot(botAddress, callDatas);
+        _optionalSendToBot(botAddress);
+        botNft.transferFrom(address(this), receiver, botID);
     }
 
     /***************************************
@@ -111,22 +139,22 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
     ***************************************/
 
     /**
-     * @notice Sets the bot implementation.
+     * @notice Posts a new BotCreationSettings.
      * Can only be called by the contract owner.
-     * @param botImplementation The address of the bot implementation.
+     * @param creationSettings The new creation settings to post.
      */
-    function setBotImplementationAddress(address botImplementation) external payable override onlyOwner {
-        _setBotImplementationAddress(botImplementation);
-    }
-
-    /**
-     * @notice Sets the bot initialization code.
-     * Can only be called by the contract owner.
-     * @param botInitializationCode1 The first part of the bot initialization code.
-     * @param botInitializationCode2 The second part of the bot initialization code.
-     */
-    function setBotInitializationCode(bytes memory botInitializationCode1, bytes memory botInitializationCode2) external payable override onlyOwner {
-        _setBotInitializationCode(botInitializationCode1, botInitializationCode2);
+    function postBotCreationSettings(
+        BotCreationSettings calldata creationSettings
+    ) external payable override onlyOwner returns (
+        uint256 creationSettingsID
+    ) {
+        // checks
+        Calls.verifyHasCode(creationSettings.botImplementation);
+        // post
+        creationSettingsID = ++_botCreationSettingsCount;
+        _botCreationSettings[creationSettingsID] = creationSettings;
+        emit BotCreationSettingsPosted(creationSettingsID);
+        emit BotCreationSettingsPaused(creationSettingsID, creationSettings.isPaused);
     }
 
     /**
@@ -135,9 +163,12 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
      * Can only be called by the contract owner.
      * @param status True to pause, false to unpause.
      */
-    function setPaused(bool status) external payable override onlyOwner {
-        _isPaused = status;
-        emit PauseSet(status);
+    function setPaused(uint256 creationSettingsID, bool status) external payable override onlyOwner {
+        // checks
+        if(creationSettingsID == 0 || creationSettingsID > _botCreationSettingsCount) revert Errors.OutOfRange();
+        // set
+        _botCreationSettings[creationSettingsID].isPaused = status;
+        emit BotCreationSettingsPaused(creationSettingsID, status);
     }
 
     /***************************************
@@ -150,11 +181,20 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
      * @return botID The ID of the newly created bot.
      * @return botAddress The address of the newly created bot.
      */
-    function _createBot(IBoomBots botNft) internal returns (uint256 botID, address botAddress) {
-        if(_isPaused) revert Errors.ContractPaused();
-        (botID, botAddress) = botNft.createBot(_botImplementation);
-        _callBot(botAddress, _botInitializationCode1);
-        _callBot(botAddress, _botInitializationCode2);
+    function _createBot(
+        IBoomBots botNft,
+        uint256 creationSettingsID
+    ) internal returns (uint256 botID, address botAddress) {
+        // checks
+        if(creationSettingsID == 0 || creationSettingsID > _botCreationSettingsCount) revert Errors.OutOfRange();
+        BotCreationSettings memory creationSettings = _botCreationSettings[creationSettingsID];
+        if(creationSettings.isPaused) revert Errors.CreationSettingsPaused();
+        // create bot
+        (botID, botAddress) = botNft.createBot(creationSettings.botImplementation);
+        // initialize
+        for(uint256 i = 0; i < creationSettings.initializationCalls.length; ++i) {
+            _callBot(botAddress, creationSettings.initializationCalls[i]);
+        }
     }
 
     /**
@@ -163,34 +203,29 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
      * @param callData The data to pass to the bot.
      */
     function _callBot(address botAddress, bytes memory callData) internal {
-        if(callData.length == 0) return;
-        Calls.functionCall(botAddress, callData);
+        uint256 balance = address(this).balance;
+        Calls.functionCallWithValue(botAddress, callData, balance);
     }
 
     /**
-     * @notice Sets the bot implementation.
-     * @param botImplementation The address of the bot implementation.
+     * @notice Calls a bot multiple times.
+     * @param botAddress The address of the bot.
+     * @param callDatas The data to pass to the bot.
      */
-    function _setBotImplementationAddress(address botImplementation) internal {
-        uint256 contractSize;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            contractSize := extcodesize(botImplementation)
+    function _multicallBot(address botAddress, bytes[] calldata callDatas) internal {
+        for(uint256 i = 0; i < callDatas.length; ++i) {
+            _callBot(botAddress, callDatas[i]);
         }
-        if(contractSize == 0) revert Errors.NotAContract();
-        _botImplementation = botImplementation;
-        emit BotImplementationSet(botImplementation);
     }
 
     /**
-     * @notice Sets the bot initialization code.
-     * Can only be called by the contract owner.
-     * @param botInitializationCode1 The first part of the bot initialization code.
-     * @param botInitializationCode2 The second part of the bot initialization code.
+     * @notice Sends any contract balance to the bot.
+     * @param botAddress The address of the bot.
      */
-    function _setBotInitializationCode(bytes memory botInitializationCode1, bytes memory botInitializationCode2) internal {
-        _botInitializationCode1 = botInitializationCode1;
-        _botInitializationCode2 = botInitializationCode2;
-        emit BotInitializationCodeSet(botInitializationCode1, botInitializationCode2);
+    function _optionalSendToBot(address botAddress) internal {
+        uint256 balance = address(this).balance;
+        if(balance > 0) {
+            Calls.sendValue(botAddress, balance);
+        }
     }
 }
