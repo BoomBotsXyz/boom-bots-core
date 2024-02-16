@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { ERC20BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast } from "./../typechain-types";
+import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -25,7 +25,7 @@ const WeiPerUsdc = BN.from(1_000_000); // 6 decimals
 const ERC6551_REGISTRY_ADDRESS = "0x000000006551c19487814612e58FE06813775758";
 const BLAST_ADDRESS            = "0x4300000000000000000000000000000000000002";
 
-describe("ERC20BalanceFetcher", function () {
+describe("BalanceFetcher", function () {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let user1: SignerWithAddress;
@@ -42,7 +42,7 @@ describe("ERC20BalanceFetcher", function () {
   let networkSettings: any;
   let snapshot: BN;
 
-  let balanceFetcher: ERC20BalanceFetcher;
+  let balanceFetcher: BalanceFetcher;
   let gasBurner: MockGasBurner; // inherits blastable
   let gasBurner2: MockGasBurner2; // inherits blastable
   let iblast: any;
@@ -70,10 +70,10 @@ describe("ERC20BalanceFetcher", function () {
   });
 
   describe("setup", function () {
-    it("can deploy ERC20BalanceFetcher", async function () {
-      balanceFetcher = await deployContract(deployer, "ERC20BalanceFetcher", [owner.address]) as ERC20BalanceFetcher;
+    it("can deploy BalanceFetcher", async function () {
+      balanceFetcher = await deployContract(deployer, "BalanceFetcher", [owner.address]) as BalanceFetcher;
       await expectDeployed(balanceFetcher.address);
-      l1DataFeeAnalyzer.register("deploy ERC20BalanceFetcher", balanceFetcher.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BalanceFetcher", balanceFetcher.deployTransaction);
     });
     it("can deploy gas burner", async function () {
       gasBurner = await deployContract(deployer, "MockGasBurner", [owner.address]);
@@ -116,11 +116,17 @@ describe("ERC20BalanceFetcher", function () {
 
   describe("fetch balances", function () {
     it("can fetch empty list", async function () {
-      let res = await balanceFetcher.fetchBalances(user1.address, [])
+      let account = user1.address
+      let tokens = []
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([])
     })
     it("can fetch zeros", async function () {
-      let res = await balanceFetcher.fetchBalances(user1.address, [erc20a.address, erc20b.address])
+      let account = user1.address
+      let tokens = [erc20a.address, erc20b.address]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([0,0])
     })
     it("can fetch nonzeros", async function () {
@@ -129,7 +135,10 @@ describe("ERC20BalanceFetcher", function () {
       let bal2 = WeiPerUsdc.mul(5)
       await erc20a.mint(user1.address, bal1)
       await erc20b.mint(user1.address, bal2)
-      let res = await balanceFetcher.fetchBalances(user1.address, [AddressZero, erc20a.address, erc20b.address, erc20c.address])
+      let account = user1.address
+      let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([balEth, bal1, bal2, 0])
     })
     it("reverts invalid token", async function () {
@@ -144,7 +153,10 @@ describe("ERC20BalanceFetcher", function () {
       let bal5 = 0
       const AddressOne = "0x0000000000000000000000000000000000000001"
       const AddressTwo = "0x0000000000000000000000000000000000000002"
-      let res = await balanceFetcher.fetchBalances(user1.address, [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo])
+      let account = user1.address
+      let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([balEth, bal1, bal2, bal3, bal4, bal5])
     })
     it("can fetch claimable gas for non blastable contract 1", async function () {
@@ -156,7 +168,10 @@ describe("ERC20BalanceFetcher", function () {
       let bal5 = 0
       const AddressOne = "0x0000000000000000000000000000000000000001"
       const AddressTwo = "0x0000000000000000000000000000000000000002"
-      let res = await balanceFetcher.fetchBalances(ERC6551_REGISTRY_ADDRESS, [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo])
+      let account = ERC6551_REGISTRY_ADDRESS
+      let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([balEth, bal1, bal2, bal3, bal4, bal5])
     })
     it("can fetch claimable gas for blastable contract 1", async function () {
@@ -168,7 +183,10 @@ describe("ERC20BalanceFetcher", function () {
       let bal5 = 0
       const AddressOne = "0x0000000000000000000000000000000000000001"
       const AddressTwo = "0x0000000000000000000000000000000000000002"
-      let res = await balanceFetcher.fetchBalances(gasBurner.address, [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo])
+      let account = gasBurner.address
+      let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([balEth, bal1, bal2, bal3, bal4, bal5])
     })
     it("can fetch claimable gas for blastable contract 2", async function () {
@@ -180,7 +198,10 @@ describe("ERC20BalanceFetcher", function () {
       let bal5 = 1500
       const AddressOne = "0x0000000000000000000000000000000000000001"
       const AddressTwo = "0x0000000000000000000000000000000000000002"
-      let res = await balanceFetcher.fetchBalances(gasBurner2.address, [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo])
+      let account = gasBurner2.address
+      let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([balEth, bal1, bal2, bal3, bal4, bal5])
     })
   });

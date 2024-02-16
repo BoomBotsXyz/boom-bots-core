@@ -571,7 +571,7 @@ describe("Blastable", function () {
     it("setup", async function () {
       account = await deployContract(deployer, "SometimesRevertAccount", []) as SometimesRevertAccount;
     });
-    it("can send 1", async function () {
+    it("can send 0", async function () {
       await user1.sendTransaction({
         to: account.address,
         value: WeiPerEther
@@ -587,10 +587,24 @@ describe("Blastable", function () {
     it("can selfSend 0", async function () {
       await account.selfSend()
     })
+    it("can selfFunctionCall 0", async function () {
+      await account.selfFunctionCall("0x")
+      await account.selfFunctionCall("0xabcd")
+    })
     it("cannot selfSend 1", async function () {
       await account.setRevertMode(1)
       try {
         await account.selfSend()
+      } catch(e) {
+        //console.error("in selfSend 1 catch")
+        //console.error(e)
+      }
+      // reverted with custom error 'CallFailed()'
+    })
+    it("cannot selfSend 1", async function () {
+      try {
+        await account.selfFunctionCall("0x")
+        await account.selfFunctionCall("0xabcd")
       } catch(e) {
         //console.error("in selfSend 1 catch")
         //console.error(e)
@@ -607,10 +621,31 @@ describe("Blastable", function () {
       }
       // reverted with custom error 'UnknownError()'
     })
+    it("cannot selfFunctionCall 2", async function () {
+      try {
+        await account.selfFunctionCall("0x")
+        await account.selfFunctionCall("0xabcd")
+      } catch(e) {
+        //console.error("in selfSend 2 catch")
+        //console.error(e)
+      }
+      // reverted with custom error 'UnknownError()'
+    })
     it("cannot selfSend 3", async function () {
       await account.setRevertMode(3)
       try {
         await account.selfSend()
+      } catch(e) {
+        //console.error("in selfSend 3 catch")
+        //console.error(e)
+      }
+      // reverted with reason string 'generic error'
+    })
+    it("cannot selfFunctionCall 3", async function () {
+      await account.setRevertMode(3)
+      try {
+        await account.selfFunctionCall("0x")
+        await account.selfFunctionCall("0xabcd")
       } catch(e) {
         //console.error("in selfSend 3 catch")
         //console.error(e)

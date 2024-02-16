@@ -89,7 +89,7 @@ function calcSighash(funcSig:string) {
   return ethers.utils.id(funcSig).substring(0, 10)
 }
 
-function calcSighashes(contract:any, contractName:string) {
+function calcSighashes(contract:any, contractName="", debugMode=false) {
   //return Object.keys(contract.functions).filter((x:string)=>x.includes('(')).map(calcSighash)
   let functions = Object.keys(contract.functions).filter((x:string)=>x.includes('('))
   let sighashes = []
@@ -100,7 +100,7 @@ function calcSighashes(contract:any, contractName:string) {
     sighashes.push(sighash)
     s = `${s}\n${sighash} ${func}`
   }
-  let debugMode = true;
+  //let debugMode = true;
   //let debugMode = false;
   if(debugMode) {
     console.log(s)
@@ -125,15 +125,19 @@ function calcSighashes(contract:any, contractName:string) {
 // read the abi from the artifact filenames
 // combine them into one abi
 function getCombinedAbi(filenames: string[]) {
-  let abi:any[] = []
+  let abiMap:any = {}
+  function pushIfUnique(item:any) {
+    if(item.type == "constructor") return
+    abiMap[JSON.stringify(item)] = true
+  }
   for(const filename of filenames) {
-    //console.log(`reading file ${filename}`)
-    let nextAbi = readJsonFile(filename).abi
-    //console.log(nextAbi)
+    let nextAbi = readJsonFile(filename)
+    nextAbi = nextAbi.abi || nextAbi
     for(const item of nextAbi) {
-      abi.push(item)
+      pushIfUnique(item)
     }
   }
+  let abi = Object.keys(abiMap).map(JSON.parse)
   return abi
 }
 

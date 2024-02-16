@@ -156,7 +156,8 @@ describe("BoomBotAccountERC2535", function () {
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
     })
     it("can deploy account implementations", async function () {
-      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount") as BoomBotAccount;
+      //boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount") as BoomBotAccount;
+      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", [deployer.address]) as BoomBotAccount;
       await expectDeployed(boomBotAccountImplementation.address);
       l1DataFeeAnalyzer.register("deploy BoomBotAccount impl", boomBotsNft.deployTransaction);
     });
@@ -218,12 +219,12 @@ describe("BoomBotAccountERC2535", function () {
     });
     it("can deploy BoomBotsFactory", async function () {
       // to deployer
-      factory = await deployContract(deployer, "BoomBotsFactory", [deployer.address, boomBotsNft.address, boomBotAccountImplementation.address, "0x", "0x"]) as BoomBotsFactory;
+      factory = await deployContract(deployer, "BoomBotsFactory", [deployer.address, boomBotsNft.address]) as BoomBotsFactory;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
       // to owner
-      factory = await deployContract(deployer, "BoomBotsFactory", [owner.address, boomBotsNft.address, boomBotAccountImplementation.address, "0x", "0x"]) as BoomBotsFactory;
+      factory = await deployContract(deployer, "BoomBotsFactory", [owner.address, boomBotsNft.address]) as BoomBotsFactory;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
@@ -245,44 +246,8 @@ describe("BoomBotAccountERC2535", function () {
         expect(await boomBotsNft.factoryIsWhitelisted(whitelistItem.factory)).eq(whitelistItem.shouldWhitelist);
       }
     });
-    it("non owner cannot setBotInitializationCode", async function () {
-      await expect(factory.connect(user1).setBotInitializationCode("0x", "0x")).to.be.revertedWithCustomError(factory, "NotContractOwner");
-    });
-    it("owner can setBotInitializationCode", async function () {
-      /*
-      //console.log(erc6551AccountModule);
-      //console.log(erc6551AccountModule.functions);
-      //console.log(Object.keys(erc6551AccountModule.functions));
-      let functions = Object.keys(erc6551AccountModule.functions).filter((x:string)=>x.includes('('))
-      console.log('functions');
-      console.log(functions);
-      for(let i = 0; i < functions.length; i++) {
-        let func = functions[i]
-        let data = erc6551AccountModule.interface.encodeFunctionData(func, []);
-        console.log('func', func)
-        console.log('data', data)
-        console.log('sighash real', data.substring(0,10))
-        let sighash = calcSighash(func)
-        console.log('sighash calc', sighash)
-      }
-      let sighashes = calcSighashes(erc6551AccountModule)
-      console.log('sighashes');
-      console.log(sighashes)
-      */
-
-      diamondCutInit = [
-        /*
-        {
-          facetAddress: diamondCutModule.address,
-          action: FacetCutAction.Add,
-          functionSelectors: calcSighashes(diamondCutModule, 'DiamondCutModule'),
-        },
-        {
-          facetAddress: diamondLoupeModule.address,
-          action: FacetCutAction.Add,
-          functionSelectors: calcSighashes(diamondLoupeModule, 'DiamondLoupeModule'),
-        },
-        */
+    it("owner can postBotCreationSettings", async function () {
+      let diamondCut = [
         {
           facetAddress: erc2535Module.address,
           action: FacetCutAction.Add,
@@ -324,58 +289,60 @@ describe("BoomBotAccountERC2535", function () {
           functionSelectors: calcSighashes(reentrancyGuardModule, 'ReentrancyGuardModule'),
         },
       ]
-      //console.log('')
-      /*
-      {
-          address facetAddress;
-          FacetCutAction action;
-          bytes4[] functionSelectors;
-      }
-      */
-      /*
-      updateSupportedInterfaces(bytes4[] calldata interfaceIDs, bool[] calldata support)
-
-      expect(await accountProxy.supportsInterface("0x01ffc9a7")).eq(true); // ERC165
-      expect(await accountProxy.supportsInterface("0x7f5828d0")).eq(true); // ERC173
-      expect(await accountProxy.supportsInterface("0x1f931c1c")).eq(true); // DiamondCut
-      expect(await accountProxy.supportsInterface("0x48e2b093")).eq(true); // DiamondLoupe
-      (interfaceId == 0x01ffc9a7) || // erc165
-      (interfaceId == 0x6faff5f1) || // erc6551 account
-      (interfaceId == 0x51945447)    // erc6551 executable
-      expect(await botAccount.supportsInterface("0x01ffc9a7")).eq(true); // ERC165
-      expect(await botAccount.supportsInterface("0x1f931c1c")).eq(true); // DiamondCut
-      expect(await botAccount.supportsInterface("0x48e2b093")).eq(true); // DiamondLoupe
-      expect(await botAccount.supportsInterface("0x6faff5f1")).eq(true); // ERC6551Account
-      expect(await botAccount.supportsInterface("0x51945447")).eq(true); // ERC6551Executable
-      */
+      diamondCutInit = diamondCut
       let interfaceIDs = [
         "0x01ffc9a7", // ERC165
         "0x1f931c1c", // DiamondCut
         "0x48e2b093", // DiamondLoupe
         "0x6faff5f1", // ERC6551Account
         "0x51945447", // ERC6551Executable
-        //"",
       ]
-      let support = [
-        true,
-        true,
-        true,
-        true,
-        true,
-      ]
-
-      botInitializationCode1 = boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCutInit, AddressZero]);
-      botInitializationCode2 = erc165Module.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
-      let tx = await factory.connect(owner).setBotInitializationCode(botInitializationCode1, botInitializationCode2);
-      await expect(tx).to.emit(factory, "BotInitializationCodeSet").withArgs(botInitializationCode1, botInitializationCode2);
-    });
+      let support = interfaceIDs.map(id=>true)
+      let params = {
+        botImplementation: boomBotAccountImplementation.address,
+        initializationCalls: [
+          boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]),
+          erc165Module.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]),
+        ],
+        isPaused: false
+      }
+      let tx = await factory.connect(owner).postBotCreationSettings(params)
+      expect(await factory.getBotCreationSettingsCount()).eq(1)
+      let res = await factory.getBotCreationSettings(1)
+      expect(res.botImplementation).eq(params.botImplementation)
+      expect(res.initializationCalls.length).eq(params.initializationCalls.length)
+      expect(res.isPaused).eq(params.isPaused)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(1)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(1, params.isPaused)
+    })
     it("create bot fails if zero address datastore", async function () {
-      await expect(factory.connect(user1)['createBot()']()).to.be.revertedWithCustomError;//(newContract, "AddressZero") // error thrown from contract being deployed
-      botInitializationCode1 = boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCutInit, dataStore.address]);
-      await factory.connect(owner).setBotInitializationCode(botInitializationCode1, botInitializationCode2);
+      let diamondCut = [
+        {
+          facetAddress: erc2535Module.address,
+          action: FacetCutAction.Add,
+          functionSelectors: calcSighashes(erc2535Module, 'ERC2535Module'),
+        },
+      ]
+      let params = {
+        botImplementation: boomBotAccountImplementation.address,
+        initializationCalls: [
+          boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, AddressZero])
+        ],
+        isPaused: false
+      }
+      let tx = await factory.connect(owner).postBotCreationSettings(params)
+      expect(await factory.getBotCreationSettingsCount()).eq(2)
+      let res = await factory.getBotCreationSettings(2)
+      expect(res.botImplementation).eq(params.botImplementation)
+      expect(res.initializationCalls.length).eq(params.initializationCalls.length)
+      expect(res.isPaused).eq(params.isPaused)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(2)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(2, params.isPaused)
+
+      await expect(factory.connect(user1)['createBot(uint256)'](2)).to.be.revertedWithCustomError;//(newContract, "AddressZero") // error thrown from contract being deployed
     });
     it("create bot fails if modules not whitelisted", async function () {
-      await expect(factory.connect(user1)['createBot()']()).to.be.revertedWithCustomError;//(newContract, "ModuleNotWhitelisted") // error thrown from contract being deployed
+      await expect(factory.connect(user1)['createBot(uint256)'](1)).to.be.revertedWithCustomError;//(newContract, "ModuleNotWhitelisted") // error thrown from contract being deployed
     });
     it("non owner cannot whitelist modules", async function () {
       await expect(dataStore.connect(user1).setModuleWhitelist([])).to.be.revertedWithCustomError(dataStore, "NotContractOwner");
@@ -435,12 +402,12 @@ describe("BoomBotAccountERC2535", function () {
       let ts = await boomBotsNft.totalSupply();
       let bal = await boomBotsNft.balanceOf(user1.address);
       let botID = ts.add(1);
-      let botRes = await factory.connect(user1).callStatic['createBot()']();
+      let botRes = await factory.connect(user1).callStatic['createBot(uint256)'](1);
       expect(botRes.botID).eq(botID);
       expect(await boomBotsNft.exists(botID)).eq(false);
       let isDeployed1 = await isDeployed(botRes.botAddress)
       expect(isDeployed1).to.be.false;
-      let tx = await factory.connect(user1)['createBot()']();
+      let tx = await factory.connect(user1)['createBot(uint256)'](1);
       await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(AddressZero, factory.address, botRes.botID);
       await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(factory.address, user1.address, botRes.botID);
       expect(await boomBotsNft.totalSupply()).eq(ts.add(1));
@@ -454,32 +421,6 @@ describe("BoomBotAccountERC2535", function () {
       expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
       tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
       l1DataFeeAnalyzer.register("createBot", tx);
-    });
-    it("cannot create bot with bad init code", async function () {
-      // revert with reason
-      let botInitializationCode32 = revertModule.interface.encodeFunctionData("revertWithReason", [])
-      let botInitializationCode31 = erc2535Module.interface.encodeFunctionData("diamondCut", [[{
-        facetAddress: revertModule.address,
-        action: FacetCutAction.Add,
-        functionSelectors: [botInitializationCode32]
-      }], AddressZero, "0x"])
-      let txdatas3 = [botInitializationCode31, botInitializationCode32]
-      let botInitializationCode33 = multicallModule.interface.encodeFunctionData("multicall", [txdatas3])
-      await factory.connect(owner).setBotInitializationCode(botInitializationCode1, botInitializationCode33);
-      await expect(factory.connect(user1)['createBot()']()).to.be.revertedWithCustomError;//(newAccount, "RevertWithReason")
-      // revert without reason
-      let botInitializationCode42 = revertModule.interface.encodeFunctionData("revertWithoutReason", [])
-      let botInitializationCode41 = erc2535Module.interface.encodeFunctionData("diamondCut", [[{
-        facetAddress: revertModule.address,
-        action: FacetCutAction.Add,
-        functionSelectors: [botInitializationCode42]
-      }], AddressZero, "0x"])
-      let txdatas4 = [botInitializationCode41, botInitializationCode42]
-      let botInitializationCode43 = multicallModule.interface.encodeFunctionData("multicall", [txdatas4])
-      await factory.connect(owner).setBotInitializationCode(botInitializationCode1, botInitializationCode43);
-      await expect(factory.connect(user1)['createBot()']()).to.be.revertedWithCustomError;//(factory, "CallFailed");
-      // reset
-      await factory.connect(owner).setBotInitializationCode(botInitializationCode1, botInitializationCode2);
     });
   });
 
@@ -555,6 +496,15 @@ describe("BoomBotAccountERC2535", function () {
       // facets(), facetAddresses()
       let facets = await diamondAccount.facets();
       let facetAddresses = await diamondAccount.facetAddresses();
+      let sighashes = calcSighashes(boomBotAccountImplementation, 'BoomBotAccount')
+      diamondCutInit = [
+        {
+          facetAddress: diamondAccount.address,
+          action: FacetCutAction.Add,
+          functionSelectors: sighashes,
+        },
+        ...diamondCutInit
+      ]
       //console.log(facets)
       //console.log(facetAddresses)
       expect(facets.length).eq(diamondCutInit.length);
