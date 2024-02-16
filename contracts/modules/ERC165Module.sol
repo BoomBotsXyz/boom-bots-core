@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IERC165Module } from "./../interfaces/modules/IERC165Module.sol";
 import { ERC165Library } from "./../libraries/modules/ERC165Library.sol";

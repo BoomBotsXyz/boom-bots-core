@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IERC1155ReceiverModule } from "./../interfaces/modules/IERC1155ReceiverModule.sol";
 

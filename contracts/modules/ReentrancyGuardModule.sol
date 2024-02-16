@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IReentrancyGuardModule } from "./../interfaces/modules/IReentrancyGuardModule.sol";
 import { ReentrancyGuardLibrary } from "./../libraries/modules/ReentrancyGuardLibrary.sol";

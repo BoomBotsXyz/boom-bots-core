@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Multicall } from "./../utils/Multicall.sol";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IERC721ReceiverModule } from "./../interfaces/modules/IERC721ReceiverModule.sol";
 import { ERC6551AccountLibrary } from "./../libraries/modules/ERC6551AccountLibrary.sol";

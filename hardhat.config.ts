@@ -35,8 +35,10 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: process.env.FORK_NETWORK ? forking : undefined,
-      hardfork: "merge",
-      allowUnlimitedContractSize: true,
+      //hardfork: "merge",
+      //allowUnlimitedContractSize: true,
+      //chainId: 31337,
+      //chainId: 168587773
     },
     localhost: { url: "http://127.0.0.1:8545" },
     ethereum: {
@@ -84,7 +86,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.19",
+        version: "0.8.24",
         settings: {
           optimizer: {
             enabled: true,

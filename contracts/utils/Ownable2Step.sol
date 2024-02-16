@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IOwnable2Step } from "./../interfaces/utils/IOwnable2Step.sol";
 import { Errors } from "./../libraries/Errors.sol";
