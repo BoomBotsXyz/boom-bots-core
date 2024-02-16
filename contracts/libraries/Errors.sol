@@ -16,6 +16,8 @@ library Errors {
     error DelegateCallFailed();
     /// @notice Thrown if the owner tries to execute an operation that is not a call.
     error OnlyCallsAllowed();
+    /// @notice Thrown when a function should not be delegatecalled.
+    error NoDelegateCall();
     /// @notice Thrown when using an address with no code.
     error NotAContract();
     /// @notice Thrown when a contract deployment fails.
@@ -94,5 +96,5 @@ library Errors {
     /// @notice Thrown when calling a function on a proxy that should only be called on the implementation.
     error NotImplementation();
     /// @notice Thrown when calling a function on an implementation contract that can only be called by the gas collector.
-    error NotImplementationGasCollector();
+    error NotGasCollector();
 }

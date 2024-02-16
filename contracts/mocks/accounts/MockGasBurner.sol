@@ -5,6 +5,7 @@ import { Multicall } from "./../../utils/Multicall.sol";
 import { Blastable } from "./../../utils/Blastable.sol";
 import { Calls } from "./../../libraries/Calls.sol";
 import { Errors } from "./../../libraries/Errors.sol";
+import { BlastableLibrary } from "./../../libraries/BlastableLibrary.sol";
 import { IBlast } from "./../../interfaces/external/Blast/IBlast.sol";
 
 
@@ -41,7 +42,7 @@ contract MockGasBurner is Multicall, Blastable {
     function x1() external view returns (uint256 amount) {
         try MockGasBurner(payable(address(this))).x1WithRevert() {}
         catch (bytes memory reason) {
-            amount = parseRevertReason(reason);
+            amount = BlastableLibrary.parseRevertReasonForAmount(reason);
         }
     }
 
@@ -52,7 +53,7 @@ contract MockGasBurner is Multicall, Blastable {
     function x2() external view returns (uint256 amount) {
         try MockGasBurner(payable(address(this))).x2WithRevert() {}
         catch (bytes memory reason) {
-            amount = parseRevertReason(reason);
+            amount = BlastableLibrary.parseRevertReasonForAmount(reason);
         }
     }
 
@@ -63,7 +64,7 @@ contract MockGasBurner is Multicall, Blastable {
     function x3() external view returns (uint256 amount) {
         try MockGasBurner(payable(address(this))).x3WithRevert() {}
         catch (bytes memory reason) {
-            amount = parseRevertReason(reason);
+            amount = BlastableLibrary.parseRevertReasonForAmount(reason);
         }
     }
 
@@ -74,7 +75,7 @@ contract MockGasBurner is Multicall, Blastable {
     function x4() external view returns (uint256 amount) {
         try MockGasBurner(payable(address(this))).x4WithRevert() {}
         catch (bytes memory reason) {
-            amount = parseRevertReason(reason);
+            amount = BlastableLibrary.parseRevertReasonForAmount(reason);
         }
     }
 

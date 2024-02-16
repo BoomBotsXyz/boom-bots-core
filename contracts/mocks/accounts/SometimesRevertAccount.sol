@@ -28,6 +28,10 @@ contract SometimesRevertAccount {
         Calls.sendValue(address(this), balance);
     }
 
+    function selfFunctionCall(bytes memory data) external payable {
+        Calls.functionCall(address(this), data);
+    }
+
     function setRevertMode(uint256 mode) external payable {
         revertMode = mode;
     }
