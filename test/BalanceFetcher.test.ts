@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast } from "./../typechain-types";
+import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast, MockERC20Rebasing } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -37,6 +37,7 @@ describe("BalanceFetcher", function () {
   let erc20a: MockERC20;
   let erc20b: MockERC20;
   let erc20c: MockERC20;
+  let usdb: MockERC20Rebasing;
 
   let chainID: number;
   let networkSettings: any;
@@ -111,6 +112,15 @@ describe("BalanceFetcher", function () {
     })
     it("can use gas burner", async function () {
       await gasBurner2.burnGas(10)
+    })
+    it("can deploy usdb", async function () {
+      usdb = await deployContract(deployer, "MockERC20Rebasing", [`USD Rebasing`, `USDB`, 18, 500]) as MockERC20Rebasing;
+      await expectDeployed(usdb.address);
+      l1DataFeeAnalyzer.register("deploy MockERC20Rebasing", usdb.deployTransaction);
+      expect(await usdb.name()).eq('USD Rebasing')
+      expect(await usdb.symbol()).eq('USDB')
+      expect(await usdb.decimals()).eq(18)
+      expect(await usdb.fixedAPY()).eq(500)
     })
   });
 
@@ -203,6 +213,90 @@ describe("BalanceFetcher", function () {
       let tx = await balanceFetcher.fetchBalances(account, tokens)
       let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
       expect(res).deep.eq([balEth, bal1, bal2, bal3, bal4, bal5])
+    })
+    it("can fetch usdb pt 0", async function () {
+      let account = user1.address
+      expect(await usdb.totalSupply()).eq(0)
+      expect(await usdb.balanceOf(account)).eq(0)
+      expect(await usdb.lastUpdatedTimestamp(account)).eq(0)
+      let tokens = [usdb.address]
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
+      expect(res).deep.eq([0])
+    })
+    it("can fetch usdb pt 1", async function () {
+      let account = user1.address
+      let bal1 = WeiPerEther
+      await usdb.mint(user1.address, bal1)
+      expect(await usdb.totalSupply()).eq(bal1)
+      expect(await usdb.balanceOf(user1.address)).eq(bal1)
+      expect(await usdb.lastUpdatedTimestamp(account)).gt(0)
+      let tokens = [usdb.address]
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
+      expect(res).deep.eq([bal1])
+    })
+    it("can fetch usdb pt 2", async function () {
+      let account1 = user1.address
+      let account2 = user2.address
+      let bal1 = WeiPerEther
+      let bal2 = WeiPerEther.div(5)
+      let bal3 = bal1.sub(bal2)
+      await usdb.connect(user1).transfer(user2.address, bal2)
+      expect(await usdb.totalSupply()).gt(bal1)
+      expect(await usdb.balanceOf(user1.address)).gt(bal3)
+      expect(await usdb.balanceOf(user2.address)).eq(bal2)
+      expect(await usdb.lastUpdatedTimestamp(account1)).gt(0)
+      expect(await usdb.lastUpdatedTimestamp(account2)).gt(0)
+      let tokens = [usdb.address]
+      let res1 = await balanceFetcher.callStatic.fetchBalances(account1, tokens)
+      //expect(res1).deep.eq([bal3])
+      expect(res1[0]).gt(bal3)
+      let res2 = await balanceFetcher.callStatic.fetchBalances(account2, tokens)
+      expect(res2).deep.eq([bal2])
+    })
+    it("can fetch usdb pt 3", async function () {
+      let account1 = user1.address
+      let account2 = user2.address
+      let account3 = user3.address
+
+      let bal01 = WeiPerEther
+      let bal02 = Zero
+      let bal03 = Zero
+
+      let bal12d = WeiPerEther.div(5)
+      let bal11 = bal01.sub(bal12d)
+      let bal12 = bal02.add(bal12d)
+      let bal13 = bal03
+
+      let bal22d = WeiPerEther.div(100)
+      let bal23d = WeiPerEther.div(100).mul(3)
+      let bal21 = bal11.sub(bal22d).sub(bal23d)
+      let bal22 = bal12.add(bal22d)
+      let bal23 = bal13.add(bal23d)
+
+      let txdata0 = usdb.interface.encodeFunctionData("transfer", [user2.address, bal22d])
+      let txdata1 = usdb.interface.encodeFunctionData("transfer", [user3.address, bal23d])
+      let txdatas = [txdata0, txdata1]
+      await usdb.connect(user1).multicall(txdatas)
+      expect(await usdb.totalSupply()).gt(bal01)
+      expect(await usdb.balanceOf(user1.address)).gt(bal21)
+      expect(await usdb.balanceOf(user2.address)).gt(bal22)
+      expect(await usdb.balanceOf(user3.address)).eq(bal23)
+      expect(await usdb.lastUpdatedTimestamp(account1)).gt(0)
+      expect(await usdb.lastUpdatedTimestamp(account2)).gt(0)
+      expect(await usdb.lastUpdatedTimestamp(account3)).gt(0)
+      let tokens = [usdb.address]
+      let res1 = await balanceFetcher.callStatic.fetchBalances(account1, tokens)
+      expect(res1[0]).gt(bal21)
+      let res2 = await balanceFetcher.callStatic.fetchBalances(account2, tokens)
+      expect(res2[0]).deep.gt(bal22)
+      let res3 = await balanceFetcher.callStatic.fetchBalances(account3, tokens)
+      expect(res3[0]).deep.eq(bal23)
+    })
+    it("can fetch usdb pt 4", async function () {
+      let bal1 = await usdb.balanceOf(user1.address)
+      await user2.sendTransaction({to: user3.address})
+      let bal2 = await usdb.balanceOf(user1.address)
+      expect(bal2).gt(bal1)
     })
   });
 
