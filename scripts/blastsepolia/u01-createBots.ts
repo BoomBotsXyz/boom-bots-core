@@ -32,11 +32,14 @@ const ABI_BOOM_BOTS_NFT = JSON.parse(fs.readFileSync("data/abi/BoomBots/tokens/B
 let mcProvider = new MulticallProvider(provider, 168587773);
 
 const ERC6551_REGISTRY_ADDRESS        = "0x000000006551c19487814612e58FE06813775758";
-const BOOM_BOTS_NFT_ADDRESS           = "0x2b119FA2796215f627344509581D8F39D742317F";
-const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0xf24f3A8a7D49031eD95EBD13774BA77a6a470b80";
-const MODULE_PACK_100_ADDRESS         = "0xdD0b84cB4DA1a1D1c262Cc4009036417BB3165eb";
-const DATA_STORE_ADDRESS              = "0xaf724B10370130c1E106FdA3da0b71D812A570d8";
-const BOOM_BOTS_FACTORY_ADDRESS       = "0x53A4f1C1b2D9603B3D3ae057B075a0EDC3d7A615";
+const BLAST_ADDRESS                   = "0x4300000000000000000000000000000000000002";
+
+const BOOM_BOTS_NFT_ADDRESS           = "0xB3856D22fE476892Af3Cc6dee3D84F015AD5F5b1"; // v0.1.1
+const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x152d3Ba1f7ac4a0AD0ec485b6A292B1F92aB8876"; // v0.1.1
+const MODULE_PACK_100_ADDRESS         = "0x044CA8B45C270E744BDaE436E7FA861c6de6b5A5"; // v0.1.0
+const MODULE_PACK_101_ADDRESS         = "0x0ea0b9aF8dD6D2C294281E7a983909BA81Bbb199"; // v0.1.1
+const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
+const BOOM_BOTS_FACTORY_ADDRESS       = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
 
 let boomBotsNft: BoomBots;
 let boomBotsNftMC: any;
@@ -52,17 +55,17 @@ async function main() {
   chainID = (await provider.getNetwork()).chainId;
   networkSettings = getNetworkSettings(chainID);
   function isChain(chainid: number, chainName: string) {
-    return ((chainID === chainid) || ((chainID === 31337) && (process.env.FORK_NETWORK === chainName)));
+    return ((chainID == chainid)/* || ((chainID == 31337) && (process.env.FORK_NETWORK === chainName))*/);
   }
-  if(!isChain(168587773, "blastsepolia")) throw("Only run this on Blast Sepolia or a local fork of Blast Sepolia");
+  if(!isChain(168587773, "blastsepolia")) throw("Only run this on Blast Sepolia. Cannot use a local fork");
 
   boomBotsNft = await ethers.getContractAt("BoomBots", BOOM_BOTS_NFT_ADDRESS, boombotseth) as BoomBots;
   boomBotsNftMC = new MulticallContract(BOOM_BOTS_NFT_ADDRESS, ABI_BOOM_BOTS_NFT)
   factory = await ethers.getContractAt("BoomBotsFactory", BOOM_BOTS_FACTORY_ADDRESS, boombotseth) as BoomBotsFactory;
 
   await listBots();
-  await createBots();
-  await listBots();
+  //await createBots();
+  //await listBots();
 }
 
 async function listBots() {
@@ -89,7 +92,9 @@ async function listBots() {
 }
 
 async function createBots() {
-  await createBot(boombotsdeployer);
+  await createBot(boombotsdeployer, 3);
+  await createBot(boombotseth, 3);
+  //await createBot(boombotsdeployer, 2);
   /*
   await createBot(boombotsdeployer);
   await createBot(boombotseth);
@@ -104,18 +109,18 @@ async function createBots() {
   //await createBotsMulticall(boombotsdeployer, 5);
 }
 
-async function createBot(creator=boombotseth) {
+async function createBot(creator=boombotseth, createSettingsID=1) {
   console.log(`Creating new bot`)
-  let tx = await factory.connect(creator)['createBot()']({...networkSettings.overrides, gasLimit: 1_500_000})
+  let tx = await factory.connect(creator)['createBot(uint256)'](createSettingsID, {...networkSettings.overrides, gasLimit: 2_000_000})
   await watchTxForCreatedBotID(tx)
 }
 
-async function createBotsMulticall(creator=boombotseth, numBots=5) {
+async function createBotsMulticall(creator=boombotseth, numBots=5, createSettingsID=1) {
   console.log(`Creating ${numBots} new bots`)
-  let txdata = factory.interface.encodeFunctionData('createBot()', [])
+  let txdata = factory.interface.encodeFunctionData('createBot(uint256)', [createSettingsID])
   let txdatas = [] as any[]
   for(let i = 0; i < numBots; i++) txdatas.push(txdata)
-  let tx = await factory.connect(creator).multicall(txdatas, {...networkSettings.overrides, gasLimit: 1_500_000*numBots})
+  let tx = await factory.connect(creator).multicall(txdatas, {...networkSettings.overrides, gasLimit: 2_000_000*numBots})
   await watchTxForCreatedBotID(tx)
 }
 

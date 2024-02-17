@@ -143,13 +143,6 @@ async function claimAllGas() {
   console.log(`Claimed ${formatUnits2(claimed)} gas`)
 }
 
-//0.000000235531400174
-//0.000000238209868277
-//0.000000002713070858
-
-//0.000433998615080993
-//0.000439517478955794
-
 async function doMath() {
   console.log("Doing math")
 

@@ -14,14 +14,14 @@ const hydrogendefieth = new ethers.Wallet(accounts.hydrogendefieth.key, provider
 
 import { getNetworkSettings } from "./../utils/getNetworkSettings";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
-import { ERC20BalanceFetcher, MockERC20 } from "../../typechain-types";
+import { BalanceFetcher, MockERC20 } from "../../typechain-types";
 
 const { AddressZero, WeiPerEther, MaxUint256 } = ethers.constants;
 
 let networkSettings: any;
 let chainID: number;
 
-const ERC20_BALANCE_FETCHER_ADDRESS   = "0x9339Cc91FCE462428181BE1C47f7813f3B76AA9A";
+const BALANCE_FETCHER_ADDRESS  = "0xd00b294c170322CCCF386329820d88420DADBc5e";
 
 const ETH_ADDRESS              = "0x0000000000000000000000000000000000000000";
 const WETH_ADDRESS             = "0x4200000000000000000000000000000000000023";
@@ -43,7 +43,9 @@ const TOKEN_LIST = [
   RGB_ADDRESS,
 ]
 
-let balanceFetcher: ERC20BalanceFetcher;
+let balanceFetcher: BalanceFetcher;
+
+let botAddress9 = "0xab19214Cb88F29F1cCD4e97E361Ba9F83c6c90c0"
 
 async function main() {
   console.log(`Using ${boombotseth.address} as boombotseth`);
@@ -56,17 +58,18 @@ async function main() {
   }
   if(!isChain(168587773, "blastsepolia")) throw("Only run this on Blast Sepolia or a local fork of Blast Sepolia");
 
-  balanceFetcher = await ethers.getContractAt("ERC20BalanceFetcher", ERC20_BALANCE_FETCHER_ADDRESS, boombotsdeployer) as ERC20BalanceFetcher;
+  balanceFetcher = await ethers.getContractAt("BalanceFetcher", BALANCE_FETCHER_ADDRESS, boombotsdeployer) as BalanceFetcher;
 
-  await getBalances();
-  //await transferUsdb();
-  //await getBalances();
+  await getBalances(boombotseth.address, 'boombotseth');
+  await getBalances(botAddress9, "Bot 9");
+  await transferUsdb();
+  await getBalances(boombotseth.address, 'boombotseth');
+  await getBalances(botAddress9, "Bot 9");
 }
 
-async function getBalances() {
-  console.log("getting balances")
-  let account = boombotseth.address
-  let res = await balanceFetcher.fetchBalances(account, TOKEN_LIST)
+async function getBalances(account:string, name='') {
+  console.log(`getting balances of ${account} ${name}`)
+  let res = await balanceFetcher.callStatic.fetchBalances(account, TOKEN_LIST)
   for(let i = 0; i < TOKEN_LIST.length; ++i) {
     console.log(`${TOKEN_LIST[i]}: ${res[i]}`)
   }
@@ -75,7 +78,8 @@ async function getBalances() {
 async function transferUsdb() {
   console.log("transferring usdb")
   let usdb = await ethers.getContractAt("MockERC20", USDB_ADDRESS, boombotseth) as MockERC20;
-  let to = "0x1144108d5eA65E03294ca56657EC6cb44852491e" // bot 129
+  //let to = "0x1144108d5eA65E03294ca56657EC6cb44852491e" // bot 129
+  let to = botAddress9
   let value = WeiPerEther.mul(100)
   let tx = await usdb.transfer(to, value, networkSettings.overrides)
   console.log('tx')
