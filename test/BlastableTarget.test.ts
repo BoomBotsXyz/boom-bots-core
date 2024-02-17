@@ -359,58 +359,58 @@ describe("BlastableTarget", function () {
       expect(await accountProxy.implementation()).eq(boomBotAccountImplementation.address)
     })
     it("returns correct gas collector", async function () {
-      expect(await boomBotAccountImplementation._implGasCollector()).eq(owner.address)
-      expect(await accountProxy._implGasCollector()).eq(owner.address)
+      expect(await boomBotAccountImplementation.zzz_implGasCollector()).eq(owner.address)
+      expect(await accountProxy.zzz_implGasCollector()).eq(owner.address)
     })
     it("cannot call implementation functions on proxies", async function () {
-      await expect(accountProxy._implCallBlast("0x")).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
-      await expect(accountProxy._implClaimAllGas(user1.address)).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
-      await expect(accountProxy._implClaimMaxGas(user1.address)).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
-      await expect(accountProxy._implSweep(user1.address,[])).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
+      await expect(accountProxy.zzz_implCallBlast("0x")).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
+      await expect(accountProxy.zzz_implClaimAllGas(user1.address)).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
+      await expect(accountProxy.zzz_implClaimMaxGas(user1.address)).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
+      await expect(accountProxy.zzz_implSweep(user1.address,[])).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
     })
     it("cannot call by non gas collector", async function () {
-      await expect(boomBotAccountImplementation.connect(user1)._implCallBlast("0x")).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
-      await expect(boomBotAccountImplementation.connect(user1)._implClaimAllGas(user1.address)).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
-      await expect(boomBotAccountImplementation.connect(user1)._implClaimMaxGas(user1.address)).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
-      await expect(boomBotAccountImplementation.connect(user1)._implSweep(user1.address,[])).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
+      await expect(boomBotAccountImplementation.connect(user1).zzz_implCallBlast("0x")).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
+      await expect(boomBotAccountImplementation.connect(user1).zzz_implClaimAllGas(user1.address)).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
+      await expect(boomBotAccountImplementation.connect(user1).zzz_implClaimMaxGas(user1.address)).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
+      await expect(boomBotAccountImplementation.connect(user1).zzz_implSweep(user1.address,[])).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
     })
-    it("_implCallBlast 0", async function () {
+    it("zzz_implCallBlast 0", async function () {
       try {
         let calldata = "0x"
-        let res = await boomBotAccountImplementation.connect(owner).callStatic._implCallBlast(calldata);
+        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implCallBlast(calldata);
         console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner)._implCallBlast(calldata);
+        let tx = await boomBotAccountImplementation.connect(owner).zzz_implCallBlast(calldata);
       } catch(e) {}
     })
-    it("_implCallBlast 1", async function () {
+    it("zzz_implCallBlast 1", async function () {
       try {
         let calldata = iblast.interface.encodeFunctionData("configureAutomaticYield")
-        let res = await boomBotAccountImplementation.connect(owner).callStatic._implCallBlast(calldata);
+        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implCallBlast(calldata);
         console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner)._implCallBlast(calldata);
+        let tx = await boomBotAccountImplementation.connect(owner).zzz_implCallBlast(calldata);
       } catch(e) {}
     })
-    it("_implCallBlast 2", async function () {
+    it("zzz_implCallBlast 2", async function () {
       let calldata = iblast.interface.encodeFunctionData("configureClaimableGas")
-      let res = await boomBotAccountImplementation.connect(owner).callStatic._implCallBlast(calldata);
+      let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implCallBlast(calldata);
       console.log({res})
-      let tx = await boomBotAccountImplementation.connect(owner)._implCallBlast(calldata);
+      let tx = await boomBotAccountImplementation.connect(owner).zzz_implCallBlast(calldata);
     })
-    it("_implClaimMaxGas", async function () {
+    it("zzz_implClaimMaxGas", async function () {
       try {
-        let res = await boomBotAccountImplementation.connect(owner).callStatic._implClaimMaxGas(owner.address)
+        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implClaimMaxGas(owner.address)
         console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner)._implClaimMaxGas(owner.address)
+        let tx = await boomBotAccountImplementation.connect(owner).zzz_implClaimMaxGas(owner.address)
       } catch(e) {}
     })
-    it("_implClaimAllGas", async function () {
+    it("zzz_implClaimAllGas", async function () {
       try {
-        let res = await boomBotAccountImplementation.connect(owner).callStatic._implClaimAllGas(owner.address)
+        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implClaimAllGas(owner.address)
         console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner)._implClaimAllGas(owner.address)
+        let tx = await boomBotAccountImplementation.connect(owner).zzz_implClaimAllGas(owner.address)
       } catch(e) {}
     })
-    it("_implSweep", async function () {
+    it("zzz_implSweep", async function () {
       await user1.sendTransaction({
         to: boomBotAccountImplementation.address,
         value: WeiPerEther
@@ -424,7 +424,7 @@ describe("BlastableTarget", function () {
       let bal13erc20 = await erc20a.balanceOf(user3.address)
       expect(bal11eth).gt(0)
       expect(bal11erc20).gt(0)
-      let tx = await boomBotAccountImplementation.connect(owner)._implSweep(user3.address, [AddressZero, erc20a.address])
+      let tx = await boomBotAccountImplementation.connect(owner).zzz_implSweep(user3.address, [AddressZero, erc20a.address])
       let bal21eth = await provider.getBalance(boomBotAccountImplementation.address)
       let bal21erc20 = await erc20a.balanceOf(boomBotAccountImplementation.address)
       let bal22eth = await provider.getBalance(owner.address)

@@ -27,7 +27,7 @@ interface IBlastableTarget {
      * @notice Returns the address of the implementation gas collector.
      * return implGasCollector The implementation gas collector.
      */
-    function _implGasCollector() external view returns (address implGasCollector);
+    function zzz_implGasCollector() external view returns (address implGasCollector);
 
     /***************************************
     MUTATOR FUNCTIONS
@@ -40,7 +40,7 @@ interface IBlastableTarget {
      * @param data The data to pass to the Blast contract.
      * @return result The result of the call.
      */
-    function _implCallBlast(bytes calldata data) external payable returns (bytes memory result);
+    function zzz_implCallBlast(bytes calldata data) external payable returns (bytes memory result);
 
     /**
      * @notice Claims max gas from the Blast contract (any maturity, get it now).
@@ -49,7 +49,7 @@ interface IBlastableTarget {
      * @param receiver The receiver of the gas claimed.
      * @return amountClaimed The amount of gas claimed.
      */
-    function _implClaimAllGas(address receiver) external payable returns (uint256 amountClaimed);
+    function zzz_implClaimAllGas(address receiver) external payable returns (uint256 amountClaimed);
 
     /**
      * @notice Claims max gas from the Blast contract (100% maturity, willing to wait).
@@ -58,7 +58,7 @@ interface IBlastableTarget {
      * @param receiver The receiver of the gas claimed.
      * @return amountClaimed The amount of gas claimed.
      */
-    function _implClaimMaxGas(address receiver) external payable returns (uint256 amountClaimed);
+    function zzz_implClaimMaxGas(address receiver) external payable returns (uint256 amountClaimed);
 
     /**
      * @notice Rescues tokens that may have been accidentally transferred in.
@@ -68,5 +68,5 @@ interface IBlastableTarget {
      * @param receiver The receiver of the rescued tokens.
      * @param tokens The tokens to rescue. Can be ETH or ERC20s.
      */
-    function _implSweep(address receiver, address[] calldata tokens) external payable;
+    function zzz_implSweep(address receiver, address[] calldata tokens) external payable;
 }

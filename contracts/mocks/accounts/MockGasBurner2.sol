@@ -18,8 +18,12 @@ contract MockGasBurner2 is MockGasBurner {
      */
     constructor(address _owner) MockGasBurner(_owner) {}
 
-    function setBlast(address newBlast) external {
-        _blast = newBlast;
+    /**
+     * @notice Sets the address of the Blast contract.
+     * @param blast_ The address to set.
+     */
+    function setBlast(address blast_) external {
+        _blast = blast_;
     }
 
     /**

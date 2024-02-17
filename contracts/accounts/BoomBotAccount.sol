@@ -37,11 +37,11 @@ contract BoomBotAccount is IBoomBotAccount, BlastableTarget {
         selectors[4] = BlastableBase.quoteClaimMaxGas.selector;
         selectors[5] = BlastableBase.quoteClaimMaxGasWithRevert.selector;
         selectors[6] = BlastableTarget.implementation.selector;
-        selectors[7] = BlastableTarget._implGasCollector.selector;
-        selectors[8] = BlastableTarget._implCallBlast.selector;
-        selectors[9] = BlastableTarget._implClaimAllGas.selector;
-        selectors[10] = BlastableTarget._implClaimMaxGas.selector;
-        selectors[11] = BlastableTarget._implSweep.selector;
+        selectors[7] = BlastableTarget.zzz_implGasCollector.selector;
+        selectors[8] = BlastableTarget.zzz_implCallBlast.selector;
+        selectors[9] = BlastableTarget.zzz_implClaimAllGas.selector;
+        selectors[10] = BlastableTarget.zzz_implClaimMaxGas.selector;
+        selectors[11] = BlastableTarget.zzz_implSweep.selector;
         ERC2535Library.FacetCut[] memory cut = new ERC2535Library.FacetCut[](1);
         cut[0] = ERC2535Library.FacetCut({
             facetAddress: address(this),

@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack101, ModulePack101, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -41,7 +41,7 @@ const testFunc2Sighash                 = "0x08752360";
 const testFunc3Sighash                 = "0x9a5fb5a8";
 const inscribeSighash                  = "0xde52f07d";
 
-describe("BoomBotAccountModulePack100", function () {
+describe("BoomBotAccountModulePack101", function () {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let user1: SignerWithAddress;
@@ -59,6 +59,7 @@ describe("BoomBotAccountModulePack100", function () {
   let accountProxy: any;
   // modules
   let modulePack100: ModulePack100;
+  let modulePack101: ModulePack101;
   let erc2535Module: ERC2535Module;
   let erc6551AccountModule: ERC6551AccountModule;
   let multicallModule: MulticallModule;
@@ -173,6 +174,10 @@ describe("BoomBotAccountModulePack100", function () {
       modulePack100 = await deployContract(deployer, "ModulePack100", []) as ERC2535Module;
       await expectDeployed(modulePack100.address);
       l1DataFeeAnalyzer.register("deploy ModulePack100 impl", modulePack100.deployTransaction);
+      // ModulePack101
+      modulePack101 = await deployContract(deployer, "ModulePack101", [owner.address]) as ERC2535Module;
+      await expectDeployed(modulePack101.address);
+      l1DataFeeAnalyzer.register("deploy ModulePack101 impl", modulePack101.deployTransaction);
       /*
       // ERC2535Module
       erc2535Module = await deployContract(deployer, "ERC2535Module", []) as ERC2535Module;
@@ -249,11 +254,35 @@ describe("BoomBotAccountModulePack100", function () {
       }
     });
     it("owner can postBotCreationSettings", async function () {
-      let sighashes = calcSighashes(modulePack100, 'ModulePack100')
-      sighashes.push(inscribeSighash)
+      //let sighashes = calcSighashes(modulePack100, 'ModulePack100', true)
+      //sighashes.push(inscribeSighash)
+      //let sighashes = calcSighashes(modulePack101, 'ModulePack101', true)
+      let sighashes = [
+        '0x660d0d67', // dataStore()
+        '0x1f931c1c', // diamondCut((address,uint8,bytes4[])[],address,bytes)
+        '0x51945447', // execute(address,uint256,bytes,uint8)
+        '0xcdffacc6', // facetAddress(bytes4)
+        '0x52ef6b2c', // facetAddresses()
+        '0xadfca15e', // facetFunctionSelectors(address)
+        '0x7a0ed627', // facets()
+        '0x1626ba7e', // isValidSignature(bytes32,bytes)
+        '0x523e3260', // isValidSigner(address,bytes)
+        '0xd5f50582', // isValidSigner(address)
+        '0xac9650d8', // multicall(bytes[])
+        '0xbc197c81', // onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)
+        '0xf23a6e61', // onERC1155Received(address,address,uint256,uint256,bytes)
+        '0x150b7a02', // onERC721Received(address,address,uint256,bytes)
+        '0x8da5cb5b', // owner()
+        '0xa2d2dd3c', // reentrancyGuardState()
+        '0xc19d93fb', // state()
+        '0x01ffc9a7', // supportsInterface(bytes4)
+        '0xfc0c546a', // token()
+        '0xf71a8a0f', // updateSupportedInterfaces(bytes4[],bool[])
+        '0xde52f07d', // inscribe()
+      ]
       let diamondCut = [
         {
-          facetAddress: modulePack100.address,
+          facetAddress: modulePack101.address,
           action: FacetCutAction.Add,
           functionSelectors: sighashes,
         },
@@ -268,7 +297,7 @@ describe("BoomBotAccountModulePack100", function () {
       ]
       let support = interfaceIDs.map(id=>true)
       botInitializationCode1 = boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]);
-      botInitializationCode2 = modulePack100.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
+      botInitializationCode2 = modulePack101.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [
@@ -289,7 +318,7 @@ describe("BoomBotAccountModulePack100", function () {
     it("owner can whitelist modules", async function () {
       let modules = [
         {
-          module: modulePack100.address,
+          module: modulePack101.address,
           shouldWhitelist: true,
         },
         {
@@ -335,13 +364,13 @@ describe("BoomBotAccountModulePack100", function () {
     it("cannot create bot with bad init code pt 1", async function () {
       // revert with reason
       let botInitializationCode32 = revertModule.interface.encodeFunctionData("revertWithReason", [])
-      let botInitializationCode31 = modulePack100.interface.encodeFunctionData("diamondCut", [[{
+      let botInitializationCode31 = modulePack101.interface.encodeFunctionData("diamondCut", [[{
         facetAddress: revertModule.address,
         action: FacetCutAction.Add,
         functionSelectors: [botInitializationCode32]
       }], AddressZero, "0x"])
       let txdatas3 = [botInitializationCode31, botInitializationCode32]
-      let botInitializationCode33 = modulePack100.interface.encodeFunctionData("multicall", [txdatas3])
+      let botInitializationCode33 = modulePack101.interface.encodeFunctionData("multicall", [txdatas3])
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [botInitializationCode1, botInitializationCode33],
@@ -354,13 +383,13 @@ describe("BoomBotAccountModulePack100", function () {
     it("cannot create bot with bad init code pt 2", async function () {
       // revert without reason
       let botInitializationCode42 = revertModule.interface.encodeFunctionData("revertWithoutReason", [])
-      let botInitializationCode41 = modulePack100.interface.encodeFunctionData("diamondCut", [[{
+      let botInitializationCode41 = modulePack101.interface.encodeFunctionData("diamondCut", [[{
         facetAddress: revertModule.address,
         action: FacetCutAction.Add,
         functionSelectors: [botInitializationCode42]
       }], AddressZero, "0x"])
       let txdatas4 = [botInitializationCode41, botInitializationCode42]
-      let botInitializationCode43 = modulePack100.interface.encodeFunctionData("multicall", [txdatas4])
+      let botInitializationCode43 = modulePack101.interface.encodeFunctionData("multicall", [txdatas4])
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [botInitializationCode1, botInitializationCode43],
@@ -437,7 +466,7 @@ describe("BoomBotAccountModulePack100", function () {
       expect(await bbaccount1.supportsInterface("0x00000000")).eq(false);
     });
     it("has the correct modules", async function () {
-      let diamondAccount = await ethers.getContractAt("ModulePack100", bbaccount1.address) as ModulePack100;
+      let diamondAccount = await ethers.getContractAt("ModulePack101", bbaccount1.address) as ModulePack101;
       /*
       // facets()
       let facets = await diamondAccount.facets();
@@ -730,7 +759,7 @@ describe("BoomBotAccountModulePack100", function () {
     it("can get combined abi", async function () {
       abi = getCombinedAbi([
         "artifacts/contracts/accounts/BoomBotAccount.sol/BoomBotAccount.json",
-        "artifacts/contracts/modules/ModulePack100.sol/ModulePack100.json",
+        "artifacts/contracts/modules/ModulePack101.sol/ModulePack101.json",
         "artifacts/contracts/mocks/modules/FallbackModule.sol/FallbackModule.json",
         "artifacts/contracts/mocks/modules/RevertModule.sol/RevertModule.json",
         "artifacts/contracts/mocks/modules/Test1Module.sol/Test1Module.json",
@@ -758,7 +787,7 @@ describe("BoomBotAccountModulePack100", function () {
     it("should have no sighash collisions", async function () {
       let abi2 = getCombinedAbi([
         "artifacts/contracts/accounts/BoomBotAccount.sol/BoomBotAccount.json",
-        "artifacts/contracts/modules/ModulePack100.sol/ModulePack100.json",
+        "artifacts/contracts/modules/ModulePack101.sol/ModulePack101.json",
         "artifacts/contracts/mocks/modules/FallbackModule.sol/FallbackModule.json",
         "artifacts/contracts/mocks/modules/RevertModule.sol/RevertModule.json",
         "artifacts/contracts/mocks/modules/Test1Module.sol/Test1Module.json",
@@ -1252,148 +1281,7 @@ describe("BoomBotAccountModulePack100", function () {
       expect(await accountProxy.supportsInterface(dummy2Sighash)).to.be.false;
     });
   });
-  /*
-  describe("implementation", async function () {
-    it("returns correct implementation address", async function () {
-      expect(await boomBotAccountImplementation.implementation()).eq(boomBotAccountImplementation.address)
-      expect(await accountProxy.implementation()).eq(boomBotAccountImplementation.address)
-    })
-    it("returns correct gas collector", async function () {
-      expect(await boomBotAccountImplementation.zzz_implGasCollector()).eq(owner.address)
-      expect(await accountProxy.zzz_implGasCollector()).eq(owner.address)
-    })
-    it("cannot call implementation functions on proxies", async function () {
-      await expect(accountProxy.zzz_implCallBlast("0x")).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
-      await expect(accountProxy.zzz_implClaimAllGas(user1.address)).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
-      await expect(accountProxy.zzz_implClaimMaxGas(user1.address)).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
-      await expect(accountProxy.zzz_implSweep(user1.address,[])).to.be.revertedWithCustomError(accountProxy, "NoDelegateCall")
-    })
-    it("cannot call by non gas collector", async function () {
-      await expect(boomBotAccountImplementation.connect(user1).zzz_implCallBlast("0x")).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
-      await expect(boomBotAccountImplementation.connect(user1).zzz_implClaimAllGas(user1.address)).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
-      await expect(boomBotAccountImplementation.connect(user1).zzz_implClaimMaxGas(user1.address)).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
-      await expect(boomBotAccountImplementation.connect(user1).zzz_implSweep(user1.address,[])).to.be.revertedWithCustomError(boomBotAccountImplementation, "NotGasCollector")
-    })
-    it("zzz_implCallBlast 0", async function () {
-      try {
-        let calldata = "0x"
-        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implCallBlast(calldata);
-        console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner).zzz_implCallBlast(calldata);
-      } catch(e) {}
-    })
-    it("zzz_implCallBlast 1", async function () {
-      try {
-        let calldata = iblast.interface.encodeFunctionData("configureAutomaticYield")
-        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implCallBlast(calldata);
-        console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner).zzz_implCallBlast(calldata);
-      } catch(e) {}
-    })
-    it("zzz_implCallBlast 2", async function () {
-      let calldata = iblast.interface.encodeFunctionData("configureClaimableGas")
-      let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implCallBlast(calldata);
-      console.log({res})
-      let tx = await boomBotAccountImplementation.connect(owner).zzz_implCallBlast(calldata);
-    })
-    it("zzz_implClaimMaxGas", async function () {
-      try {
-        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implClaimMaxGas(owner.address)
-        console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner).zzz_implClaimMaxGas(owner.address)
-      } catch(e) {}
-    })
-    it("zzz_implClaimAllGas", async function () {
-      try {
-        let res = await boomBotAccountImplementation.connect(owner).callStatic.zzz_implClaimAllGas(owner.address)
-        console.log({res})
-        let tx = await boomBotAccountImplementation.connect(owner).zzz_implClaimAllGas(owner.address)
-      } catch(e) {}
-    })
-    it("zzz_implSweep", async function () {
-      await user1.sendTransaction({
-        to: boomBotAccountImplementation.address,
-        value: WeiPerEther
-      })
-      await erc20a.mint(boomBotAccountImplementation.address, WeiPerEther.mul(3))
-      let bal11eth = await provider.getBalance(boomBotAccountImplementation.address)
-      let bal11erc20 = await erc20a.balanceOf(boomBotAccountImplementation.address)
-      let bal12eth = await provider.getBalance(owner.address)
-      let bal12erc20 = await erc20a.balanceOf(owner.address)
-      let bal13eth = await provider.getBalance(user3.address)
-      let bal13erc20 = await erc20a.balanceOf(user3.address)
-      expect(bal11eth).gt(0)
-      expect(bal11erc20).gt(0)
-      let tx = await boomBotAccountImplementation.connect(owner).zzz_implSweep(user3.address, [AddressZero, erc20a.address])
-      let bal21eth = await provider.getBalance(boomBotAccountImplementation.address)
-      let bal21erc20 = await erc20a.balanceOf(boomBotAccountImplementation.address)
-      let bal22eth = await provider.getBalance(owner.address)
-      let bal22erc20 = await erc20a.balanceOf(owner.address)
-      let bal23eth = await provider.getBalance(user3.address)
-      let bal23erc20 = await erc20a.balanceOf(user3.address)
-      expect(bal21eth).eq(0)
-      expect(bal21erc20).eq(0)
-      expect(bal22eth).lt(bal12eth) // gas fees
-      expect(bal22erc20).eq(bal12erc20)
-      expect(bal23eth).eq(bal13eth.add(bal11eth))
-      expect(bal23erc20).eq(bal13erc20.add(bal11erc20))
-    })
-    it("quoteClaimAllGas", async function () {
-      try {
-        amount = await boomBotAccountImplementation.callStatic.quoteClaimAllGas()
-        let tx = await boomBotAccountImplementation.quoteClaimAllGas()
-      } catch(e) {}
-    })
-    it("quoteClaimAllGasWithRevert", async function () {
-      try {
-        amount = await boomBotAccountImplementation.callStatic.quoteClaimAllGasWithRevert()
-        let tx = await boomBotAccountImplementation.quoteClaimAllGasWithRevert()
-      } catch(e) {}
-    })
-    it("quoteClaimMaxGas", async function () {
-      try {
-        amount = await boomBotAccountImplementation.callStatic.quoteClaimMaxGas()
-        let tx = await boomBotAccountImplementation.quoteClaimMaxGas()
-      } catch(e) {}
-    })
-    it("quoteClaimMaxGasWithRevert", async function () {
-      try {
-        amount = await boomBotAccountImplementation.callStatic.quoteClaimMaxGasWithRevert()
-        let tx = await boomBotAccountImplementation.quoteClaimMaxGasWithRevert()
-      } catch(e) {}
-    })
-    it("", async function () {})
-    it("", async function () {})
-    it("", async function () {})
-  })
 
-  describe("gas quoter", function () {
-    it("quoteClaimAllGas", async function () {
-      try {
-        amount = await accountProxy.callStatic.quoteClaimAllGas()
-        let tx = await accountProxy.quoteClaimAllGas()
-      } catch(e) {}
-    })
-    it("quoteClaimAllGasWithRevert", async function () {
-      try {
-        amount = await accountProxy.callStatic.quoteClaimAllGasWithRevert()
-        let tx = await accountProxy.quoteClaimAllGasWithRevert()
-      } catch(e) {}
-    })
-    it("quoteClaimMaxGas", async function () {
-      try {
-        amount = await accountProxy.callStatic.quoteClaimMaxGas()
-        let tx = await accountProxy.quoteClaimMaxGas()
-      } catch(e) {}
-    })
-    it("quoteClaimMaxGasWithRevert", async function () {
-      try {
-        amount = await accountProxy.callStatic.quoteClaimMaxGasWithRevert()
-        let tx = await accountProxy.quoteClaimMaxGasWithRevert()
-      } catch(e) {}
-    })
-  })
-  */
   describe("L1 gas fees", function () {
     it("calculate", async function () {
       l1DataFeeAnalyzer.analyze()

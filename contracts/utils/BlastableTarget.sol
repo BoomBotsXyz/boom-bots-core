@@ -55,7 +55,7 @@ abstract contract BlastableTarget is IBlastableTarget, BlastableBase {
      * @notice Returns the address of the implementation gas collector.
      * return implGasCollector The implementation gas collector.
      */
-    function _implGasCollector() external view override returns (address implGasCollector) {
+    function zzz_implGasCollector() external view override returns (address implGasCollector) {
         implGasCollector = __implGasCollector;
     }
 
@@ -70,7 +70,7 @@ abstract contract BlastableTarget is IBlastableTarget, BlastableBase {
      * @param data The data to pass to the Blast contract.
      * @return result The result of the call.
      */
-    function _implCallBlast(bytes calldata data) external payable override noDelegateCall onlyGasCollector returns (bytes memory result) {
+    function zzz_implCallBlast(bytes calldata data) external payable override noDelegateCall onlyGasCollector returns (bytes memory result) {
         result = Calls.functionCall(blast(), data);
     }
 
@@ -81,7 +81,7 @@ abstract contract BlastableTarget is IBlastableTarget, BlastableBase {
      * @param receiver The receiver of the gas claimed.
      * @return amountClaimed The amount of gas claimed.
      */
-    function _implClaimAllGas(address receiver) external payable override noDelegateCall onlyGasCollector returns (uint256 amountClaimed) {
+    function zzz_implClaimAllGas(address receiver) external payable override noDelegateCall onlyGasCollector returns (uint256 amountClaimed) {
         amountClaimed = IBlast(blast()).claimAllGas(address(this), receiver);
     }
 
@@ -92,7 +92,7 @@ abstract contract BlastableTarget is IBlastableTarget, BlastableBase {
      * @param receiver The receiver of the gas claimed.
      * @return amountClaimed The amount of gas claimed.
      */
-    function _implClaimMaxGas(address receiver) external payable override noDelegateCall onlyGasCollector returns (uint256 amountClaimed) {
+    function zzz_implClaimMaxGas(address receiver) external payable override noDelegateCall onlyGasCollector returns (uint256 amountClaimed) {
         amountClaimed = IBlast(blast()).claimMaxGas(address(this), receiver);
     }
 
@@ -104,7 +104,7 @@ abstract contract BlastableTarget is IBlastableTarget, BlastableBase {
      * @param receiver The receiver of the rescued tokens.
      * @param tokens The tokens to rescue. Can be ETH or ERC20s.
      */
-    function _implSweep(address receiver, address[] calldata tokens) external payable override noDelegateCall onlyGasCollector {
+    function zzz_implSweep(address receiver, address[] calldata tokens) external payable override noDelegateCall onlyGasCollector {
         for(uint256 i = 0; i < tokens.length; ) {
             address token = tokens[i];
             if(token == address(0)) {

@@ -104,7 +104,7 @@ async function getFactoryAddress(desiredFactoryAddress=undefined) {
     return desiredFactoryAddress
   }
   const KNOWN_FACTORY_ADDRESSES = [
-    "0x0c064b9898Eda871e34e880B762611eF2785D6D7",
+    "0xa43C26F8cbD9Ea70e7B0C45e17Af81B6330AC543",
     "0x2eF7f9C8545cB13EEaBc10CFFA3481553C70Ffc8",
   ]
   for(const addr of KNOWN_FACTORY_ADDRESSES) {

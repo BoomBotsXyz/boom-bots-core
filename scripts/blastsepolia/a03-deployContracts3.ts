@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { ERC20BalanceFetcher, IBlast } from "../../typechain-types";
+import { BalanceFetcher, IBlast } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -24,9 +24,9 @@ let networkSettings: any;
 let chainID: number;
 
 const BLAST_ADDRESS                   = "0x4300000000000000000000000000000000000002";
-const ERC20_BALANCE_FETCHER_ADDRESS   = "0x3a45f053C289C352bF354Ed3eA45944F1a4aF910"; // v0.1.1
+const BALANCE_FETCHER_ADDRESS         = "0xd00b294c170322CCCF386329820d88420DADBc5e"; // v0.1.1
 
-let balanceFetcher: ERC20BalanceFetcher;
+let balanceFetcher: BalanceFetcher;
 let iblast: IBlast;
 
 async function main() {
@@ -41,20 +41,20 @@ async function main() {
 
   iblast = await ethers.getContractAt("IBlast", BLAST_ADDRESS, boombotseth) as IBlast;
 
-  await deployERC20BalanceFetcher();
-  await configureBlastRewards();
+  await deployBalanceFetcher();
+  //await configureBlastRewards();
 }
 
-async function deployERC20BalanceFetcher() {
-  if(await isDeployed(ERC20_BALANCE_FETCHER_ADDRESS)) {
-    balanceFetcher = await ethers.getContractAt("ERC20BalanceFetcher", ERC20_BALANCE_FETCHER_ADDRESS, boombotsdeployer) as ERC20BalanceFetcher;
+async function deployBalanceFetcher() {
+  if(await isDeployed(BALANCE_FETCHER_ADDRESS)) {
+    balanceFetcher = await ethers.getContractAt("BalanceFetcher", BALANCE_FETCHER_ADDRESS, boombotsdeployer) as BalanceFetcher;
   } else {
-    console.log("Deploying ERC20BalanceFetcher");
+    console.log("Deploying BalanceFetcher");
     let args = [boombotsdeployer.address];
-    balanceFetcher = await deployContractUsingContractFactory(boombotsdeployer, "ERC20BalanceFetcher", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as ERC20BalanceFetcher;
-    console.log(`Deployed ERC20BalanceFetcher to ${balanceFetcher.address}`);
+    balanceFetcher = await deployContractUsingContractFactory(boombotsdeployer, "BalanceFetcher", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BalanceFetcher;
+    console.log(`Deployed BalanceFetcher to ${balanceFetcher.address}`);
     if(chainID != 31337) await verifyContract(balanceFetcher.address, args);
-    if(!!ERC20_BALANCE_FETCHER_ADDRESS && balanceFetcher.address != ERC20_BALANCE_FETCHER_ADDRESS) throw new Error(`Deployed ModulePack100 to ${balanceFetcher.address}, expected ${ERC20_BALANCE_FETCHER_ADDRESS}`)
+    if(!!BALANCE_FETCHER_ADDRESS && balanceFetcher.address != BALANCE_FETCHER_ADDRESS) throw new Error(`Deployed ModulePack100 to ${balanceFetcher.address}, expected ${BALANCE_FETCHER_ADDRESS}`)
   }
 }
 
