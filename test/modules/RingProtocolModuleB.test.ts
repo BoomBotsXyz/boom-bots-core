@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, RingProtocolModuleB, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore } from "./../../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, ModulePack101, RingProtocolModuleB, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore } from "./../../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../../scripts/utils/setStorage";
@@ -65,6 +65,7 @@ describe("modules/RingProtocolModuleB", function () {
   let accountProxy: any;
   // modules
   let modulePack100: ModulePack100;
+  let modulePack101: ModulePack101;
   let ringProtocolModuleA: RingProtocolModuleB;
   // diamond cuts
   let diamondCutInit: any[] = [];
@@ -143,6 +144,10 @@ describe("modules/RingProtocolModuleB", function () {
       modulePack100 = await deployContract(deployer, "ModulePack100", []) as ERC2535Module;
       await expectDeployed(modulePack100.address);
       l1DataFeeAnalyzer.register("deploy ModulePack100 impl", modulePack100.deployTransaction);
+      // ModulePack101
+      modulePack101 = await deployContract(deployer, "ModulePack101", [owner.address]) as ERC2535Module;
+      await expectDeployed(modulePack101.address);
+      l1DataFeeAnalyzer.register("deploy ModulePack101 impl", modulePack101.deployTransaction);
       // RingProtocolModuleB
       ringProtocolModuleA = await deployContract(deployer, "RingProtocolModuleB", [owner.address]) as RingProtocolModuleB;
       await expectDeployed(ringProtocolModuleA.address);
@@ -217,7 +222,7 @@ describe("modules/RingProtocolModuleB", function () {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [
           boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]),
-          modulePack100.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]),
+          modulePack101.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]),
         ],
         isPaused: false
       }
@@ -233,7 +238,7 @@ describe("modules/RingProtocolModuleB", function () {
     it("owner can whitelist modules", async function () {
       let modules = [
         {
-          module: modulePack100.address,
+          module: modulePack101.address,
           shouldWhitelist: true,
         },
         {
@@ -311,7 +316,7 @@ describe("modules/RingProtocolModuleB", function () {
       expect(await bbaccount1.supportsInterface("0x00000000")).eq(false);
     });
     it("has the correct modules", async function () {
-      let diamondAccount = await ethers.getContractAt("ModulePack100", bbaccount1.address) as ModulePack100;
+      let diamondAccount = await ethers.getContractAt("ModulePack101", bbaccount1.address) as ModulePack101;
       // facets(), facetAddresses()
       let facets = await diamondAccount.facets();
       let facetAddresses = await diamondAccount.facetAddresses();
@@ -348,7 +353,7 @@ describe("modules/RingProtocolModuleB", function () {
     it("can get combined abi", async function () {
       let abi = getCombinedAbi([
         "artifacts/contracts/accounts/BoomBotAccount.sol/BoomBotAccount.json",
-        "artifacts/contracts/modules/ModulePack100.sol/ModulePack100.json",
+        "artifacts/contracts/modules/ModulePack101.sol/ModulePack101.json",
         "artifacts/contracts/modules/RingProtocolModuleB.sol/RingProtocolModuleB.json",
         "artifacts/contracts/libraries/Errors.sol/Errors.json",
         "artifacts/contracts/libraries/modules/ERC2535Library.sol/ERC2535Library.json",

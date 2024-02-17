@@ -21,7 +21,7 @@ const { AddressZero, WeiPerEther, MaxUint256 } = ethers.constants;
 let networkSettings: any;
 let chainID: number;
 
-const BALANCE_FETCHER_ADDRESS  = "0xd00b294c170322CCCF386329820d88420DADBc5e";
+const BALANCE_FETCHER_ADDRESS  = "0x183D60a574Ef5F75e65e3aC2190b8B1Ad0707d71";
 
 const ETH_ADDRESS              = "0x0000000000000000000000000000000000000000";
 const WETH_ADDRESS             = "0x4200000000000000000000000000000000000023";
@@ -31,6 +31,7 @@ const USDT_ADDRESS             = "0xD8F542D710346DF26F28D6502A48F49fB2cFD19B";
 const DAI_ADDRESS              = "0x9C6Fc5bF860A4a012C9De812002dB304AD04F581";
 const BOLT_ADDRESS             = "0x1B0cC80F4E2A7d205518A1Bf36de5bED686662FE";
 const RGB_ADDRESS              = "0x7647a41596c1Ca0127BaCaa25205b310A0436B4C";
+const MOCK_USDB_ADDRESS        = "0xc967D8dE80f2eD6ABd2FA597e920A9744cDc71a6";
 
 const TOKEN_LIST = [
   ETH_ADDRESS,
@@ -41,6 +42,7 @@ const TOKEN_LIST = [
   DAI_ADDRESS,
   BOLT_ADDRESS,
   RGB_ADDRESS,
+  MOCK_USDB_ADDRESS,
 ]
 
 let balanceFetcher: BalanceFetcher;
@@ -62,9 +64,9 @@ async function main() {
 
   await getBalances(boombotseth.address, 'boombotseth');
   await getBalances(botAddress9, "Bot 9");
-  await transferUsdb();
-  await getBalances(boombotseth.address, 'boombotseth');
-  await getBalances(botAddress9, "Bot 9");
+  //await transferUsdb();
+  //await getBalances(boombotseth.address, 'boombotseth');
+  //await getBalances(botAddress9, "Bot 9");
 }
 
 async function getBalances(account:string, name='') {

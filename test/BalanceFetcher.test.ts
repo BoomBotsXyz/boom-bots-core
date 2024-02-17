@@ -300,6 +300,34 @@ describe("BalanceFetcher", function () {
     })
   });
 
+  describe("fetchBlastableGasQuotes", function () {
+    it("can fetch none", async function () {
+      let res = await balanceFetcher.callStatic.fetchBlastableGasQuotes([]);
+      expect(res).deep.eq([])
+      let tx = await balanceFetcher.fetchBlastableGasQuotes([]);
+    })
+    it("can fetch some", async function () {
+      let addresses = [
+        AddressZero, // invalid
+        ERC6551_REGISTRY_ADDRESS, // not configured
+        usdb.address, // configured with proper blast
+        gasBurner2.address, // configured with mock blast
+      ]
+      let res = await balanceFetcher.callStatic.fetchBlastableGasQuotes(addresses);
+      console.log('res')
+      console.log(res)
+      expect(res.length).eq(addresses.length)
+      expect(res[0].quoteAmountAllGas).eq(0)
+      expect(res[0].quoteAmountMaxGas).eq(0)
+      expect(res[1].quoteAmountAllGas).eq(0)
+      expect(res[1].quoteAmountMaxGas).eq(0)
+      expect(res[2].quoteAmountAllGas).eq(0)
+      expect(res[2].quoteAmountMaxGas).eq(0)
+      expect(res[3].quoteAmountAllGas).eq(2255)
+      expect(res[3].quoteAmountMaxGas).eq(1500)
+    })
+  })
+
   describe("L1 gas fees", function () {
     it("calculate", async function () {
       l1DataFeeAnalyzer.analyze()

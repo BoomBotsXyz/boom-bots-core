@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, DataStore, RingProtocolModuleA, RingProtocolModuleB, BalanceFetcher, MockERC20Rebasing } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, RingProtocolModuleA, RingProtocolModuleB, BalanceFetcher, MockERC20Rebasing } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -26,14 +26,13 @@ let chainID: number;
 
 const BLAST_ADDRESS                   = "0x4300000000000000000000000000000000000002";
 
-const DATA_STORE_ADDRESS              = "0xaf724B10370130c1E106FdA3da0b71D812A570d8"; // v0.1.0
+const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
 const RING_PROTOCOL_MODULE_A_ADDRESS  = "0xD071924d2eD9cF44dB9a62A88A80E9bED9782711"; // v0.1.0
 const RING_PROTOCOL_MODULE_B_ADDRESS  = "0x6D48d58b6E04aD003E8e49EE298d965658eBb7E8"; // v0.1.1
 
-const BALANCE_FETCHER_ADDRESS         = "0xd00b294c170322CCCF386329820d88420DADBc5e"; // v0.1.1
+const BALANCE_FETCHER_ADDRESS         = "0x183D60a574Ef5F75e65e3aC2190b8B1Ad0707d71"; // v0.1.1
 const MOCK_USDB_ADDRESS               = "0xc967D8dE80f2eD6ABd2FA597e920A9744cDc71a6"; // v0.1.1
 
-let dataStore: DataStore;
 let ringProtocolModuleA: RingProtocolModuleA;
 let ringProtocolModuleB: RingProtocolModuleB;
 
@@ -50,9 +49,6 @@ async function main() {
     return ((chainID === chainid) || ((chainID === 31337) && (process.env.FORK_NETWORK === chainName)));
   }
   if(!isChain(168587773, "blastsepolia")) throw("Only run this on Blast Sepolia or a local fork of Blast Sepolia");
-  //await expectDeployed(ERC6551_REGISTRY_ADDRESS)
-
-  dataStore = await ethers.getContractAt("DataStore", DATA_STORE_ADDRESS, boombotsdeployer) as DataStore;
 
   await deployRingProtocolModuleA();
   await deployRingProtocolModuleB();

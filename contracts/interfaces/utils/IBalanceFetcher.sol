@@ -16,4 +16,16 @@ interface IBalanceFetcher {
      * @param tokens The list of tokens to query.
      */
     function fetchBalances(address account, address[] calldata tokens) external payable returns (uint256[] memory balances);
+
+    struct GasQuote {
+        uint256 quoteAmountAllGas;
+        uint256 quoteAmountMaxGas;
+    }
+
+    /**
+     * @notice Given a list of `Blastable` contracts, returns the gas quote for all.
+     * @param accounts The list of accounts to quote.
+     * @return quotes The list of quotes.
+     */
+    function fetchBlastableGasQuotes(address[] calldata accounts) external payable returns (GasQuote[] memory quotes);
 }

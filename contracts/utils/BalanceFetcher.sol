@@ -30,13 +30,26 @@ contract BalanceFetcher is IBalanceFetcher, Blastable, Multicall {
      */
     function fetchBalances(address account, address[] calldata tokens) external payable override returns (uint256[] memory balances) {
         balances = new uint256[](tokens.length);
-        for(uint256 i = 0; i < tokens.length; ) {
+        for(uint256 i = 0; i < tokens.length; ++i) {
             address token = tokens[i];
             if(token == address(0)) balances[i] = account.balance;
             else if(token == address(1)) balances[i] = _tryQuoteClaimAllGas(account);
             else if(token == address(2)) balances[i] = _tryQuoteClaimMaxGas(account);
             else balances[i] = IERC20(token).balanceOf(account);
-            unchecked { ++i; }
+        }
+    }
+
+    /**
+     * @notice Given a list of `Blastable` contracts, returns the gas quote for all.
+     * @param accounts The list of accounts to quote.
+     * @return quotes The list of quotes.
+     */
+    function fetchBlastableGasQuotes(address[] calldata accounts) external payable override returns (GasQuote[] memory quotes) {
+        quotes = new GasQuote[](accounts.length);
+        for(uint256 i = 0; i < accounts.length; ++i) {
+            address account = accounts[i];
+            quotes[i].quoteAmountAllGas = _tryQuoteClaimAllGas(account);
+            quotes[i].quoteAmountMaxGas = _tryQuoteClaimMaxGas(account);
         }
     }
 
