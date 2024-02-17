@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, RingProtocolModuleA, RingProtocolModuleB, BalanceFetcher, MockERC20Rebasing } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, RingProtocolModuleA, RingProtocolModuleB, BalanceFetcher, MockERC20Rebasing, PreBOOM } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -31,12 +31,14 @@ const RING_PROTOCOL_MODULE_A_ADDRESS  = "0xD071924d2eD9cF44dB9a62A88A80E9bED9782
 const RING_PROTOCOL_MODULE_B_ADDRESS  = "0x6D48d58b6E04aD003E8e49EE298d965658eBb7E8"; // v0.1.1
 
 const BALANCE_FETCHER_ADDRESS         = "0x183D60a574Ef5F75e65e3aC2190b8B1Ad0707d71"; // v0.1.1
+const PRE_BOOM_ADDRESS                = "0xf10C6886e26204F61cA9e0E89db74b7774d7ADa6"; // v0.1.1
 const MOCK_USDB_ADDRESS               = "0xc967D8dE80f2eD6ABd2FA597e920A9744cDc71a6"; // v0.1.1
 
 let ringProtocolModuleA: RingProtocolModuleA;
 let ringProtocolModuleB: RingProtocolModuleB;
 
 let balanceFetcher: BalanceFetcher;
+let preboom: PreBOOM;
 let mockusdb: MockERC20Rebasing;
 
 async function main() {
@@ -54,6 +56,7 @@ async function main() {
   await deployRingProtocolModuleB();
 
   await deployBalanceFetcher();
+  await deployPreBOOM();
   await deployMockUSDB();
 }
 
@@ -93,6 +96,19 @@ async function deployBalanceFetcher() {
     console.log(`Deployed BalanceFetcher to ${balanceFetcher.address}`);
     if(chainID != 31337) await verifyContract(balanceFetcher.address, args);
     if(!!BALANCE_FETCHER_ADDRESS && balanceFetcher.address != BALANCE_FETCHER_ADDRESS) throw new Error(`Deployed ModulePack100 to ${balanceFetcher.address}, expected ${BALANCE_FETCHER_ADDRESS}`)
+  }
+}
+
+async function deployPreBOOM() {
+  if(await isDeployed(PRE_BOOM_ADDRESS)) {
+    preboom = await ethers.getContractAt("PreBOOM", PRE_BOOM_ADDRESS, boombotsdeployer) as PreBOOM;
+  } else {
+    console.log("Deploying PreBOOM");
+    let args = [boombotsdeployer.address];
+    preboom = await deployContractUsingContractFactory(boombotsdeployer, "PreBOOM", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as PreBOOM;
+    console.log(`Deployed PreBOOM to ${preboom.address}`);
+    if(chainID != 31337) await verifyContract(preboom.address, args);
+    if(!!PRE_BOOM_ADDRESS && preboom.address != PRE_BOOM_ADDRESS) throw new Error(`Deployed PreBOOM to ${preboom.address}, expected ${PRE_BOOM_ADDRESS}`)
   }
 }
 

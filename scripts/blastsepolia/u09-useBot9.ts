@@ -58,6 +58,7 @@ const USDT_ADDRESS               = "0xD8F542D710346DF26F28D6502A48F49fB2cFD19B";
 const DAI_ADDRESS                = "0x9C6Fc5bF860A4a012C9De812002dB304AD04F581";
 const BOLT_ADDRESS               = "0x1B0cC80F4E2A7d205518A1Bf36de5bED686662FE";
 const RGB_ADDRESS                = "0x7647a41596c1Ca0127BaCaa25205b310A0436B4C";
+const PRE_BOOM_ADDRESS           = "0xf10C6886e26204F61cA9e0E89db74b7774d7ADa6"; // v0.1.1
 const MOCK_USDB_ADDRESS          = "0xc967D8dE80f2eD6ABd2FA597e920A9744cDc71a6";
 
 const TOKEN_LIST = [
@@ -66,6 +67,7 @@ const TOKEN_LIST = [
   MAX_CLAIMABLE_GAS_ADDRESS,
   WETH_ADDRESS,
   USDB_ADDRESS,
+  PRE_BOOM_ADDRESS,
   USDC_ADDRESS,
   USDT_ADDRESS,
   DAI_ADDRESS,
@@ -126,9 +128,10 @@ async function main() {
 
   //await useBot9_6();
   //await useBot9_7();
-  await mintUSDB()
 
-  await fetchBotBalances();
+  //await mintUSDB()
+
+  //await fetchBotBalances();
 }
 
 // get token balances

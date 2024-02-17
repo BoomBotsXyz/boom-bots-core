@@ -97,4 +97,6 @@ library Errors {
     error NotImplementation();
     /// @notice Thrown when calling a function on an implementation contract that can only be called by the gas collector.
     error NotGasCollector();
+    /// @notice Thrown when trying to mint without the minter role.
+    error NotMinter();
 }

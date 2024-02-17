@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast, MockERC20Rebasing } from "./../typechain-types";
+import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast, MockERC20Rebasing, PreBOOM } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -48,6 +48,7 @@ describe("BalanceFetcher", function () {
   let gasBurner2: MockGasBurner2; // inherits blastable
   let iblast: any;
   let mockblast: MockBlast;
+  let preboom: PreBOOM;
 
   let l1DataFeeAnalyzer = new L1DataFeeAnalyzer();
 
@@ -325,6 +326,51 @@ describe("BalanceFetcher", function () {
       expect(res[2].quoteAmountMaxGas).eq(0)
       expect(res[3].quoteAmountAllGas).eq(2255)
       expect(res[3].quoteAmountMaxGas).eq(1500)
+    })
+  })
+
+  describe("preboom", function () {
+    it("can deploy", async function () {
+      preboom = await deployContract(deployer, "PreBOOM", [owner.address]) as PreBOOM;
+      await expectDeployed(preboom.address);
+      l1DataFeeAnalyzer.register("deploy PreBOOM", preboom.deployTransaction);
+      expect(await preboom.name()).eq('Precursor BOOM!')
+      expect(await preboom.symbol()).eq('PreBOOM')
+      expect(await preboom.decimals()).eq(18)
+      expect(await preboom.totalSupply()).eq(0)
+      expect(await preboom.balanceOf(user1.address)).eq(0)
+      expect(await preboom.isMinter(user1.address)).eq(false)
+      expect(await preboom.owner()).eq(owner.address)
+    })
+    it("non minter cannot mint", async function () {
+      await expect(preboom.connect(user1).mint(user1.address, 1)).to.be.revertedWithCustomError(preboom, "NotMinter")
+    })
+    it("non owner cannot set minters", async function () {
+      await expect(preboom.connect(user1).setMinters([])).to.be.revertedWithCustomError(preboom, "NotContractOwner")
+    })
+    it("owner set minters", async function () {
+      let params = [
+        {
+          account: user1.address,
+          isMinter: true,
+        },
+        {
+          account: user2.address,
+          isMinter: false,
+        }
+      ]
+      let tx = await preboom.connect(owner).setMinters(params)
+      for(const param of params) {
+        const { account, isMinter } = param
+        expect(await preboom.isMinter(account)).eq(isMinter)
+        await expect(tx).to.emit(preboom, "MinterSet").withArgs(account, isMinter)
+      }
+    })
+    it("minter can mint", async function () {
+      let tx = await preboom.connect(user1).mint(user2.address, 5)
+      expect(await preboom.totalSupply()).eq(5)
+      expect(await preboom.balanceOf(user1.address)).eq(0)
+      expect(await preboom.balanceOf(user2.address)).eq(5)
     })
   })
 
