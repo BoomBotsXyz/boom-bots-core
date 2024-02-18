@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -74,7 +74,7 @@ describe("DataStore", function () {
   let botInitializationCode1: any;
   let botInitializationCode2: any;
   // factory
-  let factory: BoomBotsFactory;
+  let factory: BoomBotsFactory01;
 
   let erc20a: MockERC20;
   let erc20b: MockERC20;

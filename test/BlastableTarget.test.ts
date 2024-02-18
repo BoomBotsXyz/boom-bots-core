@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast, MockBlast, MockBlastableAccount } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast, MockBlast, MockBlastableAccount } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -77,7 +77,7 @@ describe("BlastableTarget", function () {
   let botInitializationCode1: any;
   let botInitializationCode2: any;
   // factory
-  let factory: BoomBotsFactory;
+  let factory: BoomBotsFactory01;
   let iblast: any;
   let mockblast: MockBlast;
 
@@ -197,23 +197,23 @@ describe("BlastableTarget", function () {
       await expectDeployed(test3Module.address);
       l1DataFeeAnalyzer.register("deploy Test3Module impl", test3Module.deployTransaction);
     });
-    it("can deploy BoomBotsFactory", async function () {
+    it("can deploy BoomBotsFactory01", async function () {
       // to deployer
-      factory = await deployContract(deployer, "BoomBotsFactory", [deployer.address, boomBotsNft.address]) as BoomBotsFactory;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [deployer.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(deployer.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
       // to owner
-      factory = await deployContract(deployer, "BoomBotsFactory", [owner.address, boomBotsNft.address]) as BoomBotsFactory;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
     });
   });
 
   describe("bot creation via factory", function () {
     it("can get factory sighashes", async function () {
-      let sighashes = calcSighashes(factory, 'BoomBotsFactory')
+      let sighashes = calcSighashes(factory, 'BoomBotsFactory01')
     })
     it("owner can whitelist", async function () {
       let whitelist = [

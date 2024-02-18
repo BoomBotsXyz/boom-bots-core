@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, ModulePack101, BoomBotsFactory, DataStore, IBlast, MockBlastableAccount, ContractFactory,  } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, ModulePack101, BoomBotsFactory01, BoomBotsFactory02, DataStore, IBlast, MockBlastableAccount, ContractFactory,  } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -34,7 +34,8 @@ const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x152d3Ba1f7ac4a0AD0ec485b6A292B1F92aB8
 const MODULE_PACK_100_ADDRESS         = "0x044CA8B45C270E744BDaE436E7FA861c6de6b5A5"; // v0.1.0
 const MODULE_PACK_101_ADDRESS         = "0x0ea0b9aF8dD6D2C294281E7a983909BA81Bbb199"; // v0.1.1
 const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
-const BOOM_BOTS_FACTORY_ADDRESS       = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
+const BOOM_BOTS_FACTORY01_ADDRESS     = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
+const BOOM_BOTS_FACTORY02_ADDRESS     = "0xf57E8cCFD2a415aEc9319E5bc1ABD19aAF130bA1"; // v0.1.1
 
 let boomBotsNft: BoomBots;
 let accountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
@@ -42,7 +43,8 @@ let accountImplementation: BoomBotAccount; // the base implementation for boom b
 let modulePack100: ModulePack100;
 let modulePack101: ModulePack101;
 let dataStore: DataStore;
-let factory: BoomBotsFactory;
+let factory01: BoomBotsFactory01;
+let factory02: BoomBotsFactory02;
 
 let iblast: IBlast;
 
@@ -66,6 +68,8 @@ async function main() {
   await deployModulePack100();
   await deployModulePack101();
   await deployDataStore();
+  await deployBoomBotsFactory01();
+  await deployBoomBotsFactory02();
 }
 
 async function deployContractFactory() {
@@ -146,19 +150,35 @@ async function deployDataStore() {
   }
 }
 
-async function deployBoomBotsFactory() {
-  if(await isDeployed(BOOM_BOTS_FACTORY_ADDRESS)) {
-    factory = await ethers.getContractAt("BoomBotsFactory", BOOM_BOTS_FACTORY_ADDRESS, boombotsdeployer) as BoomBotsFactory;
+async function deployBoomBotsFactory01() {
+  if(await isDeployed(BOOM_BOTS_FACTORY01_ADDRESS)) {
+    factory01 = await ethers.getContractAt("BoomBotsFactory01", BOOM_BOTS_FACTORY01_ADDRESS, boombotsdeployer) as BoomBotsFactory01;
   } else {
-    console.log("Deploying BoomBotsFactory");
+    console.log("Deploying BoomBotsFactory01");
     let args = [
       boombotsdeployer.address,
       boomBotsNft.address
     ];
-    factory = await deployContractUsingContractFactory(boombotsdeployer, "BoomBotsFactory", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBotsFactory;
-    console.log(`Deployed BoomBotsFactory to ${factory.address}`);
-    if(chainID != 31337) await verifyContract(factory.address, args);
-    if(!!BOOM_BOTS_FACTORY_ADDRESS && factory.address != BOOM_BOTS_FACTORY_ADDRESS) throw new Error(`Deployed BoomBotsFactory to ${factory.address}, expected ${BOOM_BOTS_FACTORY_ADDRESS}`)
+    factory01 = await deployContractUsingContractFactory(boombotsdeployer, "BoomBotsFactory01", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBotsFactory01;
+    console.log(`Deployed BoomBotsFactory01 to ${factory01.address}`);
+    if(chainID != 31337) await verifyContract(factory01.address, args);
+    if(!!BOOM_BOTS_FACTORY01_ADDRESS && factory01.address != BOOM_BOTS_FACTORY01_ADDRESS) throw new Error(`Deployed BoomBotsFactory01 to ${factory01.address}, expected ${BOOM_BOTS_FACTORY01_ADDRESS}`)
+  }
+}
+
+async function deployBoomBotsFactory02() {
+  if(await isDeployed(BOOM_BOTS_FACTORY02_ADDRESS)) {
+    factory02 = await ethers.getContractAt("BoomBotsFactory02", BOOM_BOTS_FACTORY02_ADDRESS, boombotsdeployer) as BoomBotsFactory02;
+  } else {
+    console.log("Deploying BoomBotsFactory02");
+    let args = [
+      boombotsdeployer.address,
+      boomBotsNft.address
+    ];
+    factory02 = await deployContractUsingContractFactory(boombotsdeployer, "BoomBotsFactory02", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBotsFactory02;
+    console.log(`Deployed BoomBotsFactory02 to ${factory02.address}`);
+    if(chainID != 31337) await verifyContract(factory02.address, args);
+    if(!!BOOM_BOTS_FACTORY02_ADDRESS && factory02.address != BOOM_BOTS_FACTORY02_ADDRESS) throw new Error(`Deployed BoomBotsFactory02 to ${factory02.address}, expected ${BOOM_BOTS_FACTORY02_ADDRESS}`)
   }
 }
 

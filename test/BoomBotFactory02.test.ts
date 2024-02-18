@@ -8,7 +8,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 const { expect, assert } = chai;
 
-import { IERC6551Registry, ERC6551Account, BoomBots, BoomBotAccount, MockBlastableAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC165Module, FallbackModule, RevertModule, Pack100, BoomBotsFactory01, MockERC20, MockERC721, DataStore, RevertAccount, MockERC1271 } from "./../typechain-types";
+import { IERC6551Registry, ERC6551Account, BoomBots, BoomBotAccount, MockBlastableAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC165Module, FallbackModule, RevertModule, Pack100, BoomBotsFactory01, BoomBotFactory02, MockERC20, MockERC721, DataStore, RevertAccount, MockERC1271 } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -40,7 +40,7 @@ const testFunc2Sighash                 = "0x08752360";
 const testFunc3Sighash                 = "0x9a5fb5a8";
 const inscribeSighash                  = "0xde52f07d";
 
-describe("BoomBotCreation", function () {
+describe("BoomBotFactory02", function () {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let user1: SignerWithAddress;
@@ -73,7 +73,7 @@ describe("BoomBotCreation", function () {
   let botInitializationCode1: any;
   let botInitializationCode2: any;
   // factory
-  let factory: BoomBotsFactory01;
+  let factory: BoomBotFactory02;
 
   let erc20a: MockERC20;
   let erc20b: MockERC20;
@@ -219,17 +219,17 @@ describe("BoomBotCreation", function () {
       await expectDeployed(revertModule.address);
       l1DataFeeAnalyzer.register("deploy RevertModule impl", revertModule.deployTransaction);
     });
-    it("can deploy BoomBotsFactory01", async function () {
+    it("can deploy BoomBotsFactory02", async function () {
       // to deployer
-      factory = await deployContract(deployer, "BoomBotsFactory01", [deployer.address, boomBotsNft.address]) as BoomBotsFactory01;
+      factory = await deployContract(deployer, "BoomBotsFactory02", [deployer.address, boomBotsNft.address]) as BoomBotsFactory02;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(deployer.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory02", factory.deployTransaction);
       // to owner
-      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, boomBotsNft.address]) as BoomBotsFactory01;
+      factory = await deployContract(deployer, "BoomBotsFactory02", [owner.address, boomBotsNft.address]) as BoomBotsFactory02;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory02", factory.deployTransaction);
     });
     it("can deploy MockERC1271", async function () {
       mockERC1271 = await deployContract(deployer, "MockERC1271", []) as MockERC1271;
@@ -332,7 +332,9 @@ describe("BoomBotCreation", function () {
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       await expect(factory.connect(user1).postBotCreationSettings(params)).to.be.revertedWithCustomError(factory, "NotContractOwner")
     })
@@ -340,7 +342,9 @@ describe("BoomBotCreation", function () {
       let params = {
         botImplementation: user1.address,
         initializationCalls: [],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       await expect(factory.connect(owner).postBotCreationSettings(params)).to.be.revertedWithCustomError(factory, "NotAContract")
     })
@@ -348,7 +352,9 @@ describe("BoomBotCreation", function () {
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       let tx = await factory.connect(owner).postBotCreationSettings(params)
       expect(await factory.getBotCreationSettingsCount()).eq(1)
@@ -356,6 +362,8 @@ describe("BoomBotCreation", function () {
       expect(res.botImplementation).eq(params.botImplementation)
       expect(res.initializationCalls.length).eq(params.initializationCalls.length)
       expect(res.isPaused).eq(params.isPaused)
+      expect(res.giveTokenList).deep.eq(params.giveTokenList)
+      expect(res.giveTokenAmounts).deep.eq(params.giveTokenAmounts)
       await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(1)
       await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(1, params.isPaused)
 
@@ -523,7 +531,9 @@ describe("BoomBotCreation", function () {
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       let tx = await factory.connect(owner).postBotCreationSettings(params)
       expect(await factory.getBotCreationSettingsCount()).eq(2)
@@ -531,6 +541,8 @@ describe("BoomBotCreation", function () {
       expect(res.botImplementation).eq(params.botImplementation)
       expect(res.initializationCalls.length).eq(params.initializationCalls.length)
       expect(res.isPaused).eq(params.isPaused)
+      expect(res.giveTokenList).deep.eq(params.giveTokenList)
+      expect(res.giveTokenAmounts).deep.eq(params.giveTokenAmounts)
       await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(2)
       await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(2, params.isPaused)
 
@@ -762,7 +774,9 @@ describe("BoomBotCreation", function () {
           botInitializationCode1,
           botInitializationCode2,
         ],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       let tx = await factory.connect(owner).postBotCreationSettings(params)
       expect(await factory.getBotCreationSettingsCount()).eq(3)
@@ -770,6 +784,8 @@ describe("BoomBotCreation", function () {
       expect(res.botImplementation).eq(params.botImplementation)
       expect(res.initializationCalls.length).eq(params.initializationCalls.length)
       expect(res.isPaused).eq(params.isPaused)
+      expect(res.giveTokenList).deep.eq(params.giveTokenList)
+      expect(res.giveTokenAmounts).deep.eq(params.giveTokenAmounts)
       await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(3)
       await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(3, params.isPaused)
       diamondCut = [
@@ -839,7 +855,9 @@ describe("BoomBotCreation", function () {
           mockAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]),
           erc165Module.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]),
         ],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       let tx = await factory.connect(owner).postBotCreationSettings(params)
       expect(await factory.getBotCreationSettingsCount()).eq(4)
@@ -847,6 +865,8 @@ describe("BoomBotCreation", function () {
       expect(res.botImplementation).eq(params.botImplementation)
       expect(res.initializationCalls.length).eq(params.initializationCalls.length)
       expect(res.isPaused).eq(params.isPaused)
+      expect(res.giveTokenList).deep.eq(params.giveTokenList)
+      expect(res.giveTokenAmounts).deep.eq(params.giveTokenAmounts)
       await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(4)
       await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(4, params.isPaused)
       diamondCut = [
@@ -988,8 +1008,8 @@ describe("BoomBotCreation", function () {
       tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
       l1DataFeeAnalyzer.register("createBot", tx);
       diamondCutInits[13][0].facetAddress = botInfo.botAddress
-      expect(await provider.getBalance(factory.address)).eq(0)
-      expect(await provider.getBalance(botInfo.botAddress)).eq(75)
+      expect(await provider.getBalance(factory.address)).eq(75)
+      expect(await provider.getBalance(botInfo.botAddress)).eq(0)
     });
     it("can create bot pt 14", async function () {
       let ts = await boomBotsNft.totalSupply();
@@ -1004,11 +1024,7 @@ describe("BoomBotCreation", function () {
       expect(await boomBotsNft.isAddressBot(botRes.botAddress)).eq(false);
       let isDeployed1 = await isDeployed(botRes.botAddress)
       expect(isDeployed1).to.be.false;
-      await user3.sendTransaction({
-        to: factory.address,
-        value: 5
-      })
-      let tx = await factory.connect(user1)['createBot(uint256)'](2, { value: 70 });
+      let tx = await factory.connect(user1)['createBot(uint256)'](2, { value: 20 });
       await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(AddressZero, factory.address, botRes.botID);
       await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(factory.address, user1.address, botRes.botID);
       expect(await boomBotsNft.totalSupply()).eq(ts.add(1));
@@ -1024,8 +1040,8 @@ describe("BoomBotCreation", function () {
       expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
       tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
       l1DataFeeAnalyzer.register("createBot", tx);
-      expect(await provider.getBalance(factory.address)).eq(0)
-      expect(await provider.getBalance(botInfo.botAddress)).eq(75)
+      expect(await provider.getBalance(factory.address)).eq(95)
+      expect(await provider.getBalance(botInfo.botAddress)).eq(0)
     });
     it("cannot create bot with bad init code pt 1", async function () {
       // revert with reason
@@ -1040,7 +1056,9 @@ describe("BoomBotCreation", function () {
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [botInitializationCode1, botInitializationCode33],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       let tx = await factory.connect(owner).postBotCreationSettings(params)
       expect(await factory.getBotCreationSettingsCount()).eq(5)
@@ -1059,7 +1077,9 @@ describe("BoomBotCreation", function () {
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [botInitializationCode1, botInitializationCode43],
-        isPaused: false
+        isPaused: false,
+        giveTokenList: [],
+        giveTokenAmounts: [],
       }
       let tx = await factory.connect(owner).postBotCreationSettings(params)
       expect(await factory.getBotCreationSettingsCount()).eq(6)
@@ -1086,6 +1106,170 @@ describe("BoomBotCreation", function () {
         data: "0xabcd"
       })).to.be.reverted;
     })
+    it("owner can postBotCreationSettings pt 7", async function () {
+      let diamondCut = [
+        {
+          facetAddress: modulePack100.address,
+          action: FacetCutAction.Add,
+          functionSelectors: calcSighashes(modulePack100, 'ModulePack100'),
+        },
+      ]
+      let interfaceIDs = [
+        "0x01ffc9a7", // ERC165
+        "0x1f931c1c", // DiamondCut
+        "0x48e2b093", // DiamondLoupe
+        "0x6faff5f1", // ERC6551Account
+        "0x51945447", // ERC6551Executable
+      ]
+      let support = interfaceIDs.map(id=>true)
+      let params = {
+        botImplementation: boomBotAccountImplementation.address,
+        initializationCalls: [
+          boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]),
+          erc165Module.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]),
+        ],
+        isPaused: false,
+        giveTokenList: [AddressZero, erc20a.address],
+        giveTokenAmounts: [60, WeiPerEther.mul(100)],
+      }
+      let tx = await factory.connect(owner).postBotCreationSettings(params)
+      expect(await factory.getBotCreationSettingsCount()).eq(7)
+      let res = await factory.getBotCreationSettings(7)
+      expect(res.botImplementation).eq(params.botImplementation)
+      expect(res.initializationCalls.length).eq(params.initializationCalls.length)
+      expect(res.isPaused).eq(params.isPaused)
+      expect(res.giveTokenList).deep.eq(params.giveTokenList)
+      expect(res.giveTokenAmounts).deep.eq(params.giveTokenAmounts)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(7)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(7, params.isPaused)
+      diamondCut = [
+        {
+          facetAddress: mockAccountImplementation.address,
+          action: FacetCutAction.Add,
+          //functionSelectors: calcSighashes(mockAccountImplementation, 'mockAccountImplementation'),
+          functionSelectors: calcSighashes(boomBotAccountImplementation, 'mockAccountImplementation'),
+        },
+      ].concat(diamondCut)
+      diamondCutInits[15] = JSON.parse(JSON.stringify(diamondCut))
+      diamondCutInits[16] = JSON.parse(JSON.stringify(diamondCut))
+      diamondCutInits[17] = JSON.parse(JSON.stringify(diamondCut))
+      await erc20a.mint(factory.address, WeiPerEther.mul(125));
+    })
+    it("cannot postBotCreationSettings with length mismatch", async function () {
+      let params = {
+        botImplementation: boomBotAccountImplementation.address,
+        initializationCalls: [],
+        isPaused: false,
+        giveTokenList: [AddressZero],
+        giveTokenAmounts: [60, WeiPerEther.mul(100)],
+      }
+      await expect(factory.connect(owner).postBotCreationSettings(params)).to.be.revertedWithCustomError(factory, "LengthMismatch")
+    })
+    it("can create bot pt 15", async function () {
+      let ts = await boomBotsNft.totalSupply();
+      let bal = await boomBotsNft.balanceOf(user1.address);
+      let botID = ts.add(1);
+      let extraData = ["0x"] // single call to receive
+      let botRes = await factory.connect(user1).callStatic['createBot(uint256)'](7);
+      expect(botRes.botID).eq(botID);
+      expect(await boomBotsNft.exists(botID)).eq(false);
+      //await expect(boomBotsNft.getBotID(botRes.botAddress)).to.be.revertedWithCustomError(boomBotsNft, "BotDoesNotExist");
+      expect(await boomBotsNft.getBotID(botRes.botAddress)).eq(0);
+      expect(await boomBotsNft.isAddressBot(botRes.botAddress)).eq(false);
+      let isDeployed1 = await isDeployed(botRes.botAddress)
+      expect(isDeployed1).to.be.false;
+      let tx = await factory.connect(user1)['createBot(uint256)'](7);
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(AddressZero, factory.address, botRes.botID);
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(factory.address, user1.address, botRes.botID);
+      expect(await boomBotsNft.totalSupply()).eq(ts.add(1));
+      expect(await boomBotsNft.balanceOf(user1.address)).eq(bal.add(1));
+      expect(await boomBotsNft.exists(botID)).eq(true);
+      expect(await boomBotsNft.ownerOf(botRes.botID)).eq(user1.address);
+      let botInfo = await boomBotsNft.getBotInfo(botID);
+      //expect(botInfo.botAddress).eq(botRes.botAddress); // may change
+      expect(await boomBotsNft.getBotID(botInfo.botAddress)).eq(botID);
+      expect(await boomBotsNft.isAddressBot(botInfo.botAddress)).eq(true);
+      let isDeployed2 = await isDeployed(botInfo.botAddress)
+      expect(isDeployed2).to.be.true;
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
+      tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
+      l1DataFeeAnalyzer.register("createBot", tx);
+      diamondCutInits[15][0].facetAddress = botInfo.botAddress
+      expect(await provider.getBalance(factory.address)).eq(35)
+      expect(await provider.getBalance(botInfo.botAddress)).eq(60)
+      expect(await erc20a.balanceOf(factory.address)).eq(WeiPerEther.mul(25))
+      expect(await erc20a.balanceOf(botInfo.botAddress)).eq(WeiPerEther.mul(100))
+    });
+    it("can create bot pt 16", async function () {
+      let ts = await boomBotsNft.totalSupply();
+      let bal = await boomBotsNft.balanceOf(user1.address);
+      let botID = ts.add(1);
+      let extraData = ["0x"] // single call to receive
+      let botRes = await factory.connect(user1).callStatic['createBot(uint256)'](7);
+      expect(botRes.botID).eq(botID);
+      expect(await boomBotsNft.exists(botID)).eq(false);
+      //await expect(boomBotsNft.getBotID(botRes.botAddress)).to.be.revertedWithCustomError(boomBotsNft, "BotDoesNotExist");
+      expect(await boomBotsNft.getBotID(botRes.botAddress)).eq(0);
+      expect(await boomBotsNft.isAddressBot(botRes.botAddress)).eq(false);
+      let isDeployed1 = await isDeployed(botRes.botAddress)
+      expect(isDeployed1).to.be.false;
+      let tx = await factory.connect(user1)['createBot(uint256)'](7);
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(AddressZero, factory.address, botRes.botID);
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(factory.address, user1.address, botRes.botID);
+      expect(await boomBotsNft.totalSupply()).eq(ts.add(1));
+      expect(await boomBotsNft.balanceOf(user1.address)).eq(bal.add(1));
+      expect(await boomBotsNft.exists(botID)).eq(true);
+      expect(await boomBotsNft.ownerOf(botRes.botID)).eq(user1.address);
+      let botInfo = await boomBotsNft.getBotInfo(botID);
+      //expect(botInfo.botAddress).eq(botRes.botAddress); // may change
+      expect(await boomBotsNft.getBotID(botInfo.botAddress)).eq(botID);
+      expect(await boomBotsNft.isAddressBot(botInfo.botAddress)).eq(true);
+      let isDeployed2 = await isDeployed(botInfo.botAddress)
+      expect(isDeployed2).to.be.true;
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
+      tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
+      l1DataFeeAnalyzer.register("createBot", tx);
+      diamondCutInits[16][0].facetAddress = botInfo.botAddress
+      expect(await provider.getBalance(factory.address)).eq(0)
+      expect(await provider.getBalance(botInfo.botAddress)).eq(35)
+      expect(await erc20a.balanceOf(factory.address)).eq(0)
+      expect(await erc20a.balanceOf(botInfo.botAddress)).eq(WeiPerEther.mul(25))
+    });
+    it("can create bot pt 17", async function () {
+      let ts = await boomBotsNft.totalSupply();
+      let bal = await boomBotsNft.balanceOf(user1.address);
+      let botID = ts.add(1);
+      let extraData = ["0x"] // single call to receive
+      let botRes = await factory.connect(user1).callStatic['createBot(uint256)'](7);
+      expect(botRes.botID).eq(botID);
+      expect(await boomBotsNft.exists(botID)).eq(false);
+      //await expect(boomBotsNft.getBotID(botRes.botAddress)).to.be.revertedWithCustomError(boomBotsNft, "BotDoesNotExist");
+      expect(await boomBotsNft.getBotID(botRes.botAddress)).eq(0);
+      expect(await boomBotsNft.isAddressBot(botRes.botAddress)).eq(false);
+      let isDeployed1 = await isDeployed(botRes.botAddress)
+      expect(isDeployed1).to.be.false;
+      let tx = await factory.connect(user1)['createBot(uint256)'](7);
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(AddressZero, factory.address, botRes.botID);
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(factory.address, user1.address, botRes.botID);
+      expect(await boomBotsNft.totalSupply()).eq(ts.add(1));
+      expect(await boomBotsNft.balanceOf(user1.address)).eq(bal.add(1));
+      expect(await boomBotsNft.exists(botID)).eq(true);
+      expect(await boomBotsNft.ownerOf(botRes.botID)).eq(user1.address);
+      let botInfo = await boomBotsNft.getBotInfo(botID);
+      //expect(botInfo.botAddress).eq(botRes.botAddress); // may change
+      expect(await boomBotsNft.getBotID(botInfo.botAddress)).eq(botID);
+      expect(await boomBotsNft.isAddressBot(botInfo.botAddress)).eq(true);
+      let isDeployed2 = await isDeployed(botInfo.botAddress)
+      expect(isDeployed2).to.be.true;
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
+      tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
+      l1DataFeeAnalyzer.register("createBot", tx);
+      diamondCutInits[17][0].facetAddress = botInfo.botAddress
+      expect(await provider.getBalance(factory.address)).eq(0)
+      expect(await provider.getBalance(botInfo.botAddress)).eq(0)
+      expect(await erc20a.balanceOf(factory.address)).eq(0)
+      expect(await erc20a.balanceOf(botInfo.botAddress)).eq(WeiPerEther.mul(0))
+    });
   })
 
   // bypasses the nft
@@ -1205,6 +1389,21 @@ describe("BoomBotCreation", function () {
       accountType: "BoomBotAccount",
       createdBy: "contract",
       createdState: "incorrect",
+    },{ // created by factory, properly setup
+      botID: 15,
+      accountType: "BoomBotAccount",
+      createdBy: "contract",
+      createdState: "correct",
+    },{ // created by factory, properly setup
+      botID: 16,
+      accountType: "BoomBotAccount",
+      createdBy: "contract",
+      createdState: "correct",
+    },{ // created by factory, properly setup
+      botID: 17,
+      accountType: "BoomBotAccount",
+      createdBy: "contract",
+      createdState: "correct",
     }
   ];
 

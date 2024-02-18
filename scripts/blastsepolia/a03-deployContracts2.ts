@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, RingProtocolModuleA, RingProtocolModuleB, BalanceFetcher, MockERC20Rebasing, PreBOOM } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory01, BoomBotsFactory02, RingProtocolModuleA, RingProtocolModuleB, BalanceFetcher, MockERC20Rebasing, PreBOOM } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -32,7 +32,7 @@ const RING_PROTOCOL_MODULE_B_ADDRESS  = "0x6D48d58b6E04aD003E8e49EE298d965658eBb
 
 const BALANCE_FETCHER_ADDRESS         = "0x183D60a574Ef5F75e65e3aC2190b8B1Ad0707d71"; // v0.1.1
 const PRE_BOOM_ADDRESS                = "0xf10C6886e26204F61cA9e0E89db74b7774d7ADa6"; // v0.1.1
-const MOCK_USDB_ADDRESS               = "0xc967D8dE80f2eD6ABd2FA597e920A9744cDc71a6"; // v0.1.1
+const MOCK_USDB_ADDRESS               = "0x3114ded1fA1b406e270A65a21bC96E86C171a244"; // v0.1.1
 
 let ringProtocolModuleA: RingProtocolModuleA;
 let ringProtocolModuleB: RingProtocolModuleB;
@@ -118,8 +118,8 @@ async function deployMockUSDB() {
   } else {
     console.log("Deploying MockUSDB");
     let args = [
-      'USD Rebasing',
-      'USDB',
+      'Mock Rebasing USDB',
+      'mUSDB',
       18,
       500
     ];

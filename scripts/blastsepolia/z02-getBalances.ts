@@ -31,8 +31,8 @@ const USDT_ADDRESS             = "0xD8F542D710346DF26F28D6502A48F49fB2cFD19B";
 const DAI_ADDRESS              = "0x9C6Fc5bF860A4a012C9De812002dB304AD04F581";
 const BOLT_ADDRESS             = "0x1B0cC80F4E2A7d205518A1Bf36de5bED686662FE";
 const RGB_ADDRESS              = "0x7647a41596c1Ca0127BaCaa25205b310A0436B4C";
-const PRE_BOOM_ADDRESS           = "0xf10C6886e26204F61cA9e0E89db74b7774d7ADa6"; // v0.1.1
-const MOCK_USDB_ADDRESS        = "0xc967D8dE80f2eD6ABd2FA597e920A9744cDc71a6";
+const PRE_BOOM_ADDRESS         = "0xf10C6886e26204F61cA9e0E89db74b7774d7ADa6"; // v0.1.1
+const MOCK_USDB_ADDRESS        = "0x3114ded1fA1b406e270A65a21bC96E86C171a244";
 
 const TOKEN_LIST = [
   ETH_ADDRESS,
@@ -50,6 +50,7 @@ const TOKEN_LIST = [
 let balanceFetcher: BalanceFetcher;
 
 let botAddress9 = "0xab19214Cb88F29F1cCD4e97E361Ba9F83c6c90c0"
+let botAddress11 = "0x19eF4455f030246BB05e022E1A8215265c74dCA3"
 
 async function main() {
   console.log(`Using ${boombotseth.address} as boombotseth`);
@@ -64,11 +65,15 @@ async function main() {
 
   balanceFetcher = await ethers.getContractAt("BalanceFetcher", BALANCE_FETCHER_ADDRESS, boombotsdeployer) as BalanceFetcher;
 
-  await getBalances(boombotseth.address, 'boombotseth');
-  await getBalances(botAddress9, "Bot 9");
-  //await transferUsdb();
   //await getBalances(boombotseth.address, 'boombotseth');
   //await getBalances(botAddress9, "Bot 9");
+  await getBalances(botAddress11, "Bot 11");
+
+  //await transferUsdb();
+
+  //await getBalances(boombotseth.address, 'boombotseth');
+  //await getBalances(botAddress9, "Bot 9");
+  //await getBalances(botAddress11, "Bot 11");
 }
 
 async function getBalances(account:string, name='') {
@@ -83,7 +88,8 @@ async function transferUsdb() {
   console.log("transferring usdb")
   let usdb = await ethers.getContractAt("MockERC20", USDB_ADDRESS, boombotseth) as MockERC20;
   //let to = "0x1144108d5eA65E03294ca56657EC6cb44852491e" // bot 129
-  let to = botAddress9
+  //let to = botAddress9
+  let to = botAddress11
   let value = WeiPerEther.mul(100)
   let tx = await usdb.transfer(to, value, networkSettings.overrides)
   console.log('tx')

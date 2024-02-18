@@ -39,7 +39,7 @@ const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x152d3Ba1f7ac4a0AD0ec485b6A292B1F92aB8
 const MODULE_PACK_100_ADDRESS         = "0x044CA8B45C270E744BDaE436E7FA861c6de6b5A5"; // v0.1.0
 const MODULE_PACK_101_ADDRESS         = "0x0ea0b9aF8dD6D2C294281E7a983909BA81Bbb199"; // v0.1.1
 const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
-const BOOM_BOTS_FACTORY_ADDRESS       = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
+const BOOM_BOTS_FACTORY01_ADDRESS     = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
 
 const BALANCE_FETCHER_ADDRESS         = "0x183D60a574Ef5F75e65e3aC2190b8B1Ad0707d71";
 
@@ -56,7 +56,7 @@ let boomBotsNft: BoomBots;
 let accountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
 let modulePack100: ModulePack100;
 let dataStore: DataStore;
-let factory: BoomBotsFactory;
+let factory01: BoomBotsFactory01;
 
 let iblast: IBlast;
 
@@ -104,7 +104,7 @@ async function main() {
   await doMathAddr(MODULE_PACK_100_ADDRESS, "ModulePack100", 0, 0);
   await doMathAddr(MODULE_PACK_101_ADDRESS, "ModulePack101", 1, 2);
   await doMathAddr(DATA_STORE_ADDRESS, "DataStore", 1, 1);
-  await doMathAddr(BOOM_BOTS_FACTORY_ADDRESS, "BoomBotsFactory", 1, 1);
+  await doMathAddr(BOOM_BOTS_FACTORY01_ADDRESS, "BoomBotsFactory01", 1, 1);
   await doMathAddr(ACCOUNT_IMPLEMENTATION_ADDRESS, "BoomBotAccount Impl", 1, 2);
   await doMathAddr(BOT_1_ADDRESS, "Bot 1 v0.1.1", 1, 3);
 }

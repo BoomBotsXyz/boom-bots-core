@@ -3,13 +3,13 @@ pragma solidity 0.8.24;
 
 
 /**
- * @title IBoomBotsFactory
+ * @title IBoomBotsFactory01
  * @author Blue Matter Technologies
  * @notice A factory for BOOM! Bots.
  *
  * Users can use [`createBot()`](#createbot) to create a new bot. The bot will be created based on settings stored in the factory by the contract owner. These settings can be viewed via [`getBotCreationSettings()`](#getbotcreationsettings).
  */
-interface IBoomBotsFactory {
+interface IBoomBotsFactory01 {
 
     /***************************************
     EVENTS

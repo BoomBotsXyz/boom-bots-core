@@ -8,7 +8,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 const { expect, assert } = chai;
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC165Module, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, InscriptionModule, ReentrancyGuardModule, DataStoreModule, BoomBotsFactory, MockERC20, MockERC721, DataStore } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC165Module, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, InscriptionModule, ReentrancyGuardModule, DataStoreModule, BoomBotsFactory01, MockERC20, MockERC721, DataStore } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -74,7 +74,7 @@ describe("BoomBotAccountERC2535", function () {
   let botInitializationCode1: any;
   let botInitializationCode2: any;
   // factory
-  let factory: BoomBotsFactory;
+  let factory: BoomBotsFactory01;
 
   let erc20a: MockERC20;
   let erc20b: MockERC20;
@@ -217,17 +217,17 @@ describe("BoomBotAccountERC2535", function () {
       await expectDeployed(reentrancyGuardModule.address);
       l1DataFeeAnalyzer.register("deploy ReentrancyGuardModule impl", reentrancyGuardModule.deployTransaction);
     });
-    it("can deploy BoomBotsFactory", async function () {
+    it("can deploy BoomBotsFactory01", async function () {
       // to deployer
-      factory = await deployContract(deployer, "BoomBotsFactory", [deployer.address, boomBotsNft.address]) as BoomBotsFactory;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [deployer.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(deployer.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
       // to owner
-      factory = await deployContract(deployer, "BoomBotsFactory", [owner.address, boomBotsNft.address]) as BoomBotsFactory;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
     });
   });
 

@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, DataStore } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory01, BoomBotsFactory02, DataStore } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -39,14 +39,16 @@ const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x152d3Ba1f7ac4a0AD0ec485b6A292B1F92aB8
 const MODULE_PACK_100_ADDRESS         = "0x044CA8B45C270E744BDaE436E7FA861c6de6b5A5"; // v0.1.0
 const MODULE_PACK_101_ADDRESS         = "0x0ea0b9aF8dD6D2C294281E7a983909BA81Bbb199"; // v0.1.1
 const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
-const BOOM_BOTS_FACTORY_ADDRESS       = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
+const BOOM_BOTS_FACTORY01_ADDRESS     = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
+const BOOM_BOTS_FACTORY02_ADDRESS     = "0xf57E8cCFD2a415aEc9319E5bc1ABD19aAF130bA1"; // v0.1.1
 
 let boomBotsNft: BoomBots;
 let boomBotsNftMC: any;
 let accountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
 let modulePack100: ModulePack100;
 let dataStore: DataStore;
-let factory: BoomBotsFactory;
+let factory01: BoomBotsFactory01;
+let factory02: BoomBotsFactory02;
 
 async function main() {
   console.log(`Using ${boombotseth.address} as boombotseth`);
@@ -61,11 +63,12 @@ async function main() {
 
   boomBotsNft = await ethers.getContractAt("BoomBots", BOOM_BOTS_NFT_ADDRESS, boombotseth) as BoomBots;
   boomBotsNftMC = new MulticallContract(BOOM_BOTS_NFT_ADDRESS, ABI_BOOM_BOTS_NFT)
-  factory = await ethers.getContractAt("BoomBotsFactory", BOOM_BOTS_FACTORY_ADDRESS, boombotseth) as BoomBotsFactory;
+  factory01 = await ethers.getContractAt("BoomBotsFactory01", BOOM_BOTS_FACTORY01_ADDRESS, boombotseth) as BoomBotsFactory01;
+  factory02 = await ethers.getContractAt("BoomBotsFactory02", BOOM_BOTS_FACTORY02_ADDRESS, boombotseth) as BoomBotsFactory02;
 
   await listBots();
-  //await createBots();
-  //await listBots();
+  await createBots();
+  await listBots();
 }
 
 async function listBots() {
@@ -92,8 +95,8 @@ async function listBots() {
 }
 
 async function createBots() {
-  await createBot(boombotsdeployer, 3);
-  await createBot(boombotseth, 3);
+  await createBot(boombotsdeployer, 2);
+  //await createBot(boombotseth, 3);
   //await createBot(boombotsdeployer, 2);
   /*
   await createBot(boombotsdeployer);
@@ -111,16 +114,18 @@ async function createBots() {
 
 async function createBot(creator=boombotseth, createSettingsID=1) {
   console.log(`Creating new bot`)
-  let tx = await factory.connect(creator)['createBot(uint256)'](createSettingsID, {...networkSettings.overrides, gasLimit: 2_000_000})
+  //let tx = await factory01.connect(creator)['createBot(uint256)'](createSettingsID, {...networkSettings.overrides, gasLimit: 2_000_000})
+  let tx = await factory02.connect(creator)['createBot(uint256)'](createSettingsID, {...networkSettings.overrides, gasLimit: 2_000_000})
   await watchTxForCreatedBotID(tx)
 }
 
 async function createBotsMulticall(creator=boombotseth, numBots=5, createSettingsID=1) {
   console.log(`Creating ${numBots} new bots`)
-  let txdata = factory.interface.encodeFunctionData('createBot(uint256)', [createSettingsID])
+  let txdata = factory01.interface.encodeFunctionData('createBot(uint256)', [createSettingsID])
   let txdatas = [] as any[]
   for(let i = 0; i < numBots; i++) txdatas.push(txdata)
-  let tx = await factory.connect(creator).multicall(txdatas, {...networkSettings.overrides, gasLimit: 2_000_000*numBots})
+  //let tx = await factory01.connect(creator).multicall(txdatas, {...networkSettings.overrides, gasLimit: 2_000_000*numBots})
+  let tx = await factory02.connect(creator).multicall(txdatas, {...networkSettings.overrides, gasLimit: 2_000_000*numBots})
   await watchTxForCreatedBotID(tx)
 }
 

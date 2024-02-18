@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, ModulePack101, RingProtocolModuleB, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore } from "./../../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, ModulePack101, RingProtocolModuleB, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore } from "./../../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../../scripts/utils/setStorage";
@@ -72,7 +72,7 @@ describe("modules/RingProtocolModuleB", function () {
   let botInitializationCode1: any;
   let botInitializationCode2: any;
   // factory
-  let factory: BoomBotsFactory;
+  let factory: BoomBotsFactory01;
 
   let weth: MockERC20;
   let usdc: MockERC20;
@@ -153,11 +153,11 @@ describe("modules/RingProtocolModuleB", function () {
       await expectDeployed(ringProtocolModuleA.address);
       l1DataFeeAnalyzer.register("deploy RingProtocolModuleB impl", ringProtocolModuleA.deployTransaction);
     });
-    it("can deploy BoomBotsFactory", async function () {
-      factory = await deployContract(deployer, "BoomBotsFactory", [owner.address, boomBotsNft.address]) as BoomBotsFactory;
+    it("can deploy BoomBotsFactory01", async function () {
+      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
     });
   });
 

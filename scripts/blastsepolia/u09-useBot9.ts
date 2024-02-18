@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const blasttestnetuser3 = new ethers.Wallet(accounts.blasttestnetuser3.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory, DataStore, RingProtocolModuleA, RingProtocolModuleB, IBlast, BalanceFetcher, MockERC20 } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, BoomBotsFactory01, BoomBotsFactory02, DataStore, RingProtocolModuleA, RingProtocolModuleB, IBlast, BalanceFetcher, MockERC20 } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -41,7 +41,7 @@ const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x152d3Ba1f7ac4a0AD0ec485b6A292B1F92aB8
 const MODULE_PACK_100_ADDRESS         = "0x044CA8B45C270E744BDaE436E7FA861c6de6b5A5"; // v0.1.0
 const MODULE_PACK_101_ADDRESS         = "0x0ea0b9aF8dD6D2C294281E7a983909BA81Bbb199"; // v0.1.1
 const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
-const BOOM_BOTS_FACTORY_ADDRESS       = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
+const BOOM_BOTS_FACTORY01_ADDRESS     = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
 
 const RING_PROTOCOL_MODULE_A_ADDRESS  = "0xD071924d2eD9cF44dB9a62A88A80E9bED9782711"; // v0.1.0
 const RING_PROTOCOL_MODULE_B_ADDRESS  = "0x6D48d58b6E04aD003E8e49EE298d965658eBb7E8"; // v0.1.1
@@ -59,7 +59,7 @@ const DAI_ADDRESS                = "0x9C6Fc5bF860A4a012C9De812002dB304AD04F581";
 const BOLT_ADDRESS               = "0x1B0cC80F4E2A7d205518A1Bf36de5bED686662FE";
 const RGB_ADDRESS                = "0x7647a41596c1Ca0127BaCaa25205b310A0436B4C";
 const PRE_BOOM_ADDRESS           = "0xf10C6886e26204F61cA9e0E89db74b7774d7ADa6"; // v0.1.1
-const MOCK_USDB_ADDRESS          = "0xc967D8dE80f2eD6ABd2FA597e920A9744cDc71a6";
+const MOCK_USDB_ADDRESS          = "0x3114ded1fA1b406e270A65a21bC96E86C171a244";
 
 const TOKEN_LIST = [
   ETH_ADDRESS,
@@ -81,7 +81,7 @@ let boomBotsNftMC: any;
 let accountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
 let modulePack100: ModulePack100;
 let dataStore: DataStore;
-let factory: BoomBotsFactory;
+let factory01: BoomBotsFactory01;
 let ringProtocolModuleA: RingProtocolModuleA;
 let ringProtocolModuleB: RingProtocolModuleB;
 let balanceFetcher: BalanceFetcher;

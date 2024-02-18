@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: none
 pragma solidity 0.8.24;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Multicall } from "./../utils/Multicall.sol";
 import { Calls } from "./../libraries/Calls.sol";
 import { Errors } from "./../libraries/Errors.sol";
 import { IBoomBots } from "./../interfaces/tokens/IBoomBots.sol";
-import { IBoomBotsFactory } from "./../interfaces/router/IBoomBotsFactory.sol";
+import { IBoomBotsFactory02 } from "./../interfaces/router/IBoomBotsFactory02.sol";
 import { Blastable } from "./../utils/Blastable.sol";
 
 
 /**
- * @title BoomBotsFactory
+ * @title BoomBotsFactory02
  * @author Blue Matter Technologies
  * @notice A factory for BOOM! Bots.
  *
  * Users can use [`createBot()`](#createbot) to create a new bot. The bot will be created based on settings stored in the factory by the contract owner. These settings can be viewed via [`getBotCreationSettings()`](#getbotcreationsettings).
  */
-contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
+contract BoomBotsFactory02 is Multicall, Blastable, IBoomBotsFactory02 {
 
     /***************************************
     STATE VARIABLES
@@ -59,12 +61,16 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
      * @return botImplementation The bot implementation.
      * @return initializationCalls The calls to initialize the bot.
      * @return isPaused True if these creation settings are paused, false otherwise.
+     * @return giveTokenList The list of tokens to give to newly created bots.
+     * @return giveTokenAmounts The amount of each token to give.
      */
     function getBotCreationSettings(uint256 creationSettingsID) external view override returns (
         address botNft,
         address botImplementation,
         bytes[] memory initializationCalls,
-        bool isPaused
+        bool isPaused,
+        address[] memory giveTokenList,
+        uint256[] memory giveTokenAmounts
     ) {
         if(creationSettingsID == 0 || creationSettingsID > _botCreationSettingsCount) revert Errors.OutOfRange();
         botNft = _botNft;
@@ -72,6 +78,8 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
         botImplementation = creationSettings.botImplementation;
         initializationCalls = creationSettings.initializationCalls;
         isPaused = creationSettings.isPaused;
+        giveTokenList = creationSettings.giveTokenList;
+        giveTokenAmounts = creationSettings.giveTokenAmounts;
     }
 
     /***************************************
@@ -87,7 +95,6 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
     function createBot(uint256 creationSettingsID) external payable override returns (uint256 botID, address botAddress) {
         IBoomBots botNft = IBoomBots(_botNft);
         (botID, botAddress) = _createBot(botNft, creationSettingsID);
-        _optionalSendToBot(botAddress);
         botNft.transferFrom(address(this), msg.sender, botID);
     }
 
@@ -102,7 +109,6 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
         IBoomBots botNft = IBoomBots(_botNft);
         (botID, botAddress) = _createBot(botNft, creationSettingsID);
         _multicallBot(botAddress, callDatas);
-        _optionalSendToBot(botAddress);
         botNft.transferFrom(address(this), msg.sender, botID);
     }
 
@@ -115,7 +121,6 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
     function createBot(uint256 creationSettingsID, address receiver) external payable override returns (uint256 botID, address botAddress) {
         IBoomBots botNft = IBoomBots(_botNft);
         (botID, botAddress) = _createBot(botNft, creationSettingsID);
-        _optionalSendToBot(botAddress);
         botNft.transferFrom(address(this), receiver, botID);
     }
 
@@ -130,7 +135,6 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
         IBoomBots botNft = IBoomBots(_botNft);
         (botID, botAddress) = _createBot(botNft, creationSettingsID);
         _multicallBot(botAddress, callDatas);
-        _optionalSendToBot(botAddress);
         botNft.transferFrom(address(this), receiver, botID);
     }
 
@@ -150,6 +154,7 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
     ) {
         // checks
         Calls.verifyHasCode(creationSettings.botImplementation);
+        if(creationSettings.giveTokenList.length != creationSettings.giveTokenAmounts.length) revert Errors.LengthMismatch();
         // post
         creationSettingsID = ++_botCreationSettingsCount;
         _botCreationSettings[creationSettingsID] = creationSettings;
@@ -195,6 +200,11 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
         for(uint256 i = 0; i < creationSettings.initializationCalls.length; ++i) {
             _callBot(botAddress, creationSettings.initializationCalls[i]);
         }
+        // give tokens
+        uint256 len = creationSettings.giveTokenList.length;
+        for(uint256 i = 0; i < len; ++i) {
+            _sendToken(creationSettings.giveTokenList[i], creationSettings.giveTokenAmounts[i], botAddress);
+        }
     }
 
     /**
@@ -203,8 +213,7 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
      * @param callData The data to pass to the bot.
      */
     function _callBot(address botAddress, bytes memory callData) internal {
-        uint256 balance = address(this).balance;
-        Calls.functionCallWithValue(botAddress, callData, balance);
+        Calls.functionCall(botAddress, callData);
     }
 
     /**
@@ -219,13 +228,33 @@ contract BoomBotsFactory is Multicall, Blastable, IBoomBotsFactory {
     }
 
     /**
-     * @notice Sends any contract balance to the bot.
-     * @param botAddress The address of the bot.
+     * @notice Sends some token. Supports the gas token and erc20s.
+     * @param token The address of token to send.
+     * @param amount The maximum amount to send. Will send less if insufficient funds.
+     * @param receiver The receiver of the funds.
      */
-    function _optionalSendToBot(address botAddress) internal {
-        uint256 balance = address(this).balance;
-        if(balance > 0) {
-            Calls.sendValue(botAddress, balance);
+    function _sendToken(address token, uint256 amount, address receiver) internal {
+        // send eth
+        if(token == address(0)) {
+            uint256 bal = address(this).balance;
+            bal = _min(bal, amount);
+            if(bal > 0) Calls.sendValue(receiver, bal);
         }
+        // send erc20
+        else {
+            uint256 bal = IERC20(token).balanceOf(address(this));
+            bal = _min(bal, amount);
+            if(bal > 0) SafeERC20.safeTransfer(IERC20(token), receiver, bal);
+        }
+    }
+
+    /**
+     * @notice Returns the minimum of two numbers.
+     * @param a The first number.
+     * @param b The second number.
+     * @return c The minimum.
+     */
+    function _min(uint256 a, uint256 b) internal pure returns (uint256 c) {
+        c = (a < b ? a : b);
     }
 }
