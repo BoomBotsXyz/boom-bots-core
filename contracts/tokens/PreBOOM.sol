@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Blastable } from "./../utils/Blastable.sol";
+import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 import { Multicall } from "./../utils/Multicall.sol";
 import { Errors } from "./../libraries/Errors.sol";
 import { IPreBOOM } from "./../interfaces/tokens/IPreBOOM.sol";
@@ -13,7 +14,7 @@ import { IPreBOOM } from "./../interfaces/tokens/IPreBOOM.sol";
  * @author Blue Matter Technologies
  * @notice The precursor token to BOOM!
  */
-contract PreBOOM is IPreBOOM, ERC20, Blastable, Multicall {
+contract PreBOOM is IPreBOOM, ERC20, Blastable, Ownable2Step, Multicall {
 
     mapping(address => bool) internal _isMinter;
 
@@ -24,9 +25,15 @@ contract PreBOOM is IPreBOOM, ERC20, Blastable, Multicall {
 
     /**
      * @notice Constructs the PreBOOM contract.
-     * @param owner_ The contract owner.
+     * @param owner_ The owner of the contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
      */
-    constructor(address owner_) ERC20("Precursor BOOM!", "PreBOOM") {
+    constructor(
+        address owner_,
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) ERC20("Precursor BOOM!", "PreBOOM") {
         _transferOwnership(owner_);
     }
 

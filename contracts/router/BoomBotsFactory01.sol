@@ -7,6 +7,7 @@ import { Errors } from "./../libraries/Errors.sol";
 import { IBoomBots } from "./../interfaces/tokens/IBoomBots.sol";
 import { IBoomBotsFactory01 } from "./../interfaces/router/IBoomBotsFactory01.sol";
 import { Blastable } from "./../utils/Blastable.sol";
+import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 
 
 /**
@@ -16,7 +17,7 @@ import { Blastable } from "./../utils/Blastable.sol";
  *
  * Users can use [`createBot()`](#createbot) to create a new bot. The bot will be created based on settings stored in the factory by the contract owner. These settings can be viewed via [`getBotCreationSettings()`](#getbotcreationsettings).
  */
-contract BoomBotsFactory01 is Multicall, Blastable, IBoomBotsFactory01 {
+contract BoomBotsFactory01 is Multicall, Blastable, Ownable2Step, IBoomBotsFactory01 {
 
     /***************************************
     STATE VARIABLES
@@ -30,13 +31,17 @@ contract BoomBotsFactory01 is Multicall, Blastable, IBoomBotsFactory01 {
 
     /**
      * @notice Constructs the factory contract.
-     * @param owner_ The contract owner.
+     * @param owner_ The owner of the contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
      * @param botNft The BoomBots contract.
      */
     constructor(
         address owner_,
+        address blast_,
+        address governor_,
         address botNft
-    ) {
+    ) Blastable(blast_, governor_) {
         _transferOwnership(owner_);
         _botNft = botNft;
     }

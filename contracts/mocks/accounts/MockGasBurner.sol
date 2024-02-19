@@ -3,26 +3,32 @@ pragma solidity 0.8.24;
 
 import { Multicall } from "./../../utils/Multicall.sol";
 import { Blastable } from "./../../utils/Blastable.sol";
-import { Calls } from "./../../libraries/Calls.sol";
+import { Ownable2Step } from "./../../utils/Ownable2Step.sol";
 import { Errors } from "./../../libraries/Errors.sol";
 import { BlastableLibrary } from "./../../libraries/BlastableLibrary.sol";
-import { IBlast } from "./../../interfaces/external/Blast/IBlast.sol";
 
 
 /**
  * @title MockGasBurner
+ * @author Blue Matter Technologies
  * @notice An account that burns gas and performs gas math. Only used to help calculate Blast gas rewards.
 */
-contract MockGasBurner is Multicall, Blastable {
+contract MockGasBurner is Multicall, Blastable, Ownable2Step {
 
     uint256 public x;
 
     /**
      * @notice Constructs the MockGasBurner contract.
-     * @param _owner The owner of the contract.
+     * @param owner_ The owner of the contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
      */
-    constructor(address _owner) {
-        _transferOwnership(_owner);
+    constructor(
+        address owner_,
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) {
+        _transferOwnership(owner_);
         x = 1;
     }
 

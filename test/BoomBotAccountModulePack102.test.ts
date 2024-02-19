@@ -1,5 +1,5 @@
-/* global describe it before ethers */
 
+/* global describe it before ethers */
 import hre from "hardhat";
 const { ethers } = hre;
 const { provider } = ethers;
@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast, GasCollector } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack101, ModulePack102, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast, GasCollector, BalanceFetcher, MockBlast } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -22,6 +22,8 @@ import { getSelectors, FacetCutAction, calcSighash, calcSighashes, getCombinedAb
 
 const { AddressZero, WeiPerEther, MaxUint256, Zero } = ethers.constants;
 const WeiPerUsdc = BN.from(1_000_000); // 6 decimals
+const AddressOne = "0x0000000000000000000000000000000000000001"
+const AddressTwo = "0x0000000000000000000000000000000000000002"
 
 const ERC6551_REGISTRY_ADDRESS = "0x000000006551c19487814612e58FE06813775758";
 const BLAST_ADDRESS            = "0x4300000000000000000000000000000000000002";
@@ -41,7 +43,7 @@ const testFunc2Sighash                 = "0x08752360";
 const testFunc3Sighash                 = "0x9a5fb5a8";
 const inscribeSighash                  = "0xde52f07d";
 
-describe("BoomBotAccountModulePack100", function () {
+describe("BoomBotAccountModulePack102", function () {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let user1: SignerWithAddress;
@@ -51,6 +53,7 @@ describe("BoomBotAccountModulePack100", function () {
   let user5: SignerWithAddress;
 
   let gasCollector: GasCollector;
+  let balanceFetcher: BalanceFetcher;
   let boomBotsNft: BoomBots;
   let boomBotAccountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
   let dataStore: DataStore;
@@ -60,6 +63,8 @@ describe("BoomBotAccountModulePack100", function () {
   let accountProxy: any;
   // modules
   let modulePack100: ModulePack100;
+  let modulePack101: ModulePack101;
+  let modulePack102: ModulePack102;
   let erc2535Module: ERC2535Module;
   let erc6551AccountModule: ERC6551AccountModule;
   let multicallModule: MulticallModule;
@@ -78,6 +83,7 @@ describe("BoomBotAccountModulePack100", function () {
   // factory
   let factory: BoomBotsFactory01;
   let iblast: any;
+  let mockblast: MockBlast;
 
   let erc20a: MockERC20;
   let erc20b: MockERC20;
@@ -180,6 +186,14 @@ describe("BoomBotAccountModulePack100", function () {
       modulePack100 = await deployContract(deployer, "ModulePack100", []) as ERC2535Module;
       await expectDeployed(modulePack100.address);
       l1DataFeeAnalyzer.register("deploy ModulePack100 impl", modulePack100.deployTransaction);
+      // ModulePack101
+      modulePack101 = await deployContract(deployer, "ModulePack101", [BLAST_ADDRESS, owner.address]) as ModulePack101;
+      await expectDeployed(modulePack101.address);
+      l1DataFeeAnalyzer.register("deploy ModulePack101 impl", modulePack101.deployTransaction);
+      // ModulePack102
+      modulePack102 = await deployContract(deployer, "ModulePack102", [BLAST_ADDRESS, owner.address]) as ModulePack102;
+      await expectDeployed(modulePack102.address);
+      l1DataFeeAnalyzer.register("deploy ModulePack102 impl", modulePack102.deployTransaction);
       /*
       // ERC2535Module
       erc2535Module = await deployContract(deployer, "ERC2535Module", []) as ERC2535Module;
@@ -235,6 +249,11 @@ describe("BoomBotAccountModulePack100", function () {
       expect(await factory.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
     });
+    it("can deploy BalanceFetcher", async function () {
+      balanceFetcher = await deployContract(deployer, "BalanceFetcher", [owner.address, BLAST_ADDRESS, gasCollector.address]) as BalanceFetcher;
+      await expectDeployed(balanceFetcher.address);
+      l1DataFeeAnalyzer.register("deploy BalanceFetcher", balanceFetcher.deployTransaction);
+    });
   });
 
   describe("bot creation via factory", function () {
@@ -256,11 +275,36 @@ describe("BoomBotAccountModulePack100", function () {
       }
     });
     it("owner can postBotCreationSettings", async function () {
-      let sighashes = calcSighashes(modulePack100, 'ModulePack100')
-      sighashes.push(inscribeSighash)
+      //let sighashes = calcSighashes(modulePack100, 'ModulePack100', true)
+      //sighashes.push(inscribeSighash)
+      //let sighashes = calcSighashes(modulePack101, 'ModulePack101', true)
+      let sighashes0 = calcSighashes(modulePack102, 'ModulePack102', true)
+      let sighashes = [
+        '0x660d0d67', // dataStore()
+        '0x1f931c1c', // diamondCut((address,uint8,bytes4[])[],address,bytes)
+        '0x51945447', // execute(address,uint256,bytes,uint8)
+        '0xcdffacc6', // facetAddress(bytes4)
+        '0x52ef6b2c', // facetAddresses()
+        '0xadfca15e', // facetFunctionSelectors(address)
+        '0x7a0ed627', // facets()
+        '0x1626ba7e', // isValidSignature(bytes32,bytes)
+        '0x523e3260', // isValidSigner(address,bytes)
+        '0xd5f50582', // isValidSigner(address)
+        '0xac9650d8', // multicall(bytes[])
+        '0xbc197c81', // onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)
+        '0xf23a6e61', // onERC1155Received(address,address,uint256,uint256,bytes)
+        '0x150b7a02', // onERC721Received(address,address,uint256,bytes)
+        '0x8da5cb5b', // owner()
+        '0xa2d2dd3c', // reentrancyGuardState()
+        '0xc19d93fb', // state()
+        '0x01ffc9a7', // supportsInterface(bytes4)
+        '0xfc0c546a', // token()
+        '0xf71a8a0f', // updateSupportedInterfaces(bytes4[],bool[])
+        '0xde52f07d', // inscribe()
+      ]
       let diamondCut = [
         {
-          facetAddress: modulePack100.address,
+          facetAddress: modulePack102.address,
           action: FacetCutAction.Add,
           functionSelectors: sighashes,
         },
@@ -275,7 +319,7 @@ describe("BoomBotAccountModulePack100", function () {
       ]
       let support = interfaceIDs.map(id=>true)
       botInitializationCode1 = boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]);
-      botInitializationCode2 = modulePack100.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
+      botInitializationCode2 = modulePack102.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [
@@ -296,7 +340,7 @@ describe("BoomBotAccountModulePack100", function () {
     it("owner can whitelist modules", async function () {
       let modules = [
         {
-          module: modulePack100.address,
+          module: modulePack102.address,
           shouldWhitelist: true,
         },
         {
@@ -342,13 +386,13 @@ describe("BoomBotAccountModulePack100", function () {
     it("cannot create bot with bad init code pt 1", async function () {
       // revert with reason
       let botInitializationCode32 = revertModule.interface.encodeFunctionData("revertWithReason", [])
-      let botInitializationCode31 = modulePack100.interface.encodeFunctionData("diamondCut", [[{
+      let botInitializationCode31 = modulePack102.interface.encodeFunctionData("diamondCut", [[{
         facetAddress: revertModule.address,
         action: FacetCutAction.Add,
         functionSelectors: [botInitializationCode32]
       }], AddressZero, "0x"])
       let txdatas3 = [botInitializationCode31, botInitializationCode32]
-      let botInitializationCode33 = modulePack100.interface.encodeFunctionData("multicall", [txdatas3])
+      let botInitializationCode33 = modulePack102.interface.encodeFunctionData("multicall", [txdatas3])
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [botInitializationCode1, botInitializationCode33],
@@ -361,13 +405,13 @@ describe("BoomBotAccountModulePack100", function () {
     it("cannot create bot with bad init code pt 2", async function () {
       // revert without reason
       let botInitializationCode42 = revertModule.interface.encodeFunctionData("revertWithoutReason", [])
-      let botInitializationCode41 = modulePack100.interface.encodeFunctionData("diamondCut", [[{
+      let botInitializationCode41 = modulePack102.interface.encodeFunctionData("diamondCut", [[{
         facetAddress: revertModule.address,
         action: FacetCutAction.Add,
         functionSelectors: [botInitializationCode42]
       }], AddressZero, "0x"])
       let txdatas4 = [botInitializationCode41, botInitializationCode42]
-      let botInitializationCode43 = modulePack100.interface.encodeFunctionData("multicall", [txdatas4])
+      let botInitializationCode43 = modulePack102.interface.encodeFunctionData("multicall", [txdatas4])
       let params = {
         botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [botInitializationCode1, botInitializationCode43],
@@ -444,7 +488,7 @@ describe("BoomBotAccountModulePack100", function () {
       expect(await bbaccount1.supportsInterface("0x00000000")).eq(false);
     });
     it("has the correct modules", async function () {
-      let diamondAccount = await ethers.getContractAt("ModulePack100", bbaccount1.address) as ModulePack100;
+      let diamondAccount = await ethers.getContractAt("ModulePack102", bbaccount1.address) as ModulePack102;
       /*
       // facets()
       let facets = await diamondAccount.facets();
@@ -737,7 +781,7 @@ describe("BoomBotAccountModulePack100", function () {
     it("can get combined abi", async function () {
       abi = getCombinedAbi([
         "artifacts/contracts/accounts/BoomBotAccount.sol/BoomBotAccount.json",
-        "artifacts/contracts/modules/ModulePack100.sol/ModulePack100.json",
+        "artifacts/contracts/modules/ModulePack102.sol/ModulePack102.json",
         "artifacts/contracts/mocks/modules/FallbackModule.sol/FallbackModule.json",
         "artifacts/contracts/mocks/modules/RevertModule.sol/RevertModule.json",
         "artifacts/contracts/mocks/modules/Test1Module.sol/Test1Module.json",
@@ -765,7 +809,7 @@ describe("BoomBotAccountModulePack100", function () {
     it("should have no sighash collisions", async function () {
       let abi2 = getCombinedAbi([
         "artifacts/contracts/accounts/BoomBotAccount.sol/BoomBotAccount.json",
-        "artifacts/contracts/modules/ModulePack100.sol/ModulePack100.json",
+        "artifacts/contracts/modules/ModulePack102.sol/ModulePack102.json",
         "artifacts/contracts/mocks/modules/FallbackModule.sol/FallbackModule.json",
         "artifacts/contracts/mocks/modules/RevertModule.sol/RevertModule.json",
         "artifacts/contracts/mocks/modules/Test1Module.sol/Test1Module.json",
@@ -1259,6 +1303,238 @@ describe("BoomBotAccountModulePack100", function () {
       expect(await accountProxy.supportsInterface(dummy2Sighash)).to.be.false;
     });
   });
+
+  describe("quoter", function () {
+    it("can fetch claimable gas for accountProxy pt 1", async function () {
+      let account = tbaccount2.address
+      let bal0 = await provider.getBalance(account)
+      let bal1 = 0
+      let bal2 = 0
+      let tokens = [AddressZero, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
+      expect(res).deep.eq([bal0, bal1, bal2])
+    })
+    it("can fetch claimable gas for module pack 102", async function () {
+      let account = modulePack102.address
+      let bal0 = await provider.getBalance(account)
+      let bal1 = 0
+      let bal2 = 0
+      let tokens = [AddressZero, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
+      expect(res).deep.eq([bal0, bal1, bal2])
+    })
+    it("can deploy mockblast", async function () {
+      mockblast = await deployContract(deployer, "MockBlast", []);
+      await expectDeployed(mockblast.address);
+      l1DataFeeAnalyzer.register("deploy MockBlast", mockblast.deployTransaction);
+      await user1.sendTransaction({
+        to: mockblast.address,
+        value: WeiPerEther
+      })
+    })
+    it("can deploy account implementations", async function () {
+      //boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", []) as BoomBotAccount;
+      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", [mockblast.address, owner.address]) as BoomBotAccount;
+      await expectDeployed(boomBotAccountImplementation.address);
+      l1DataFeeAnalyzer.register("deploy BoomBotAccount impl", boomBotsNft.deployTransaction);
+    });
+    it("can deploy modules", async function () {
+      // ModulePack102
+      modulePack102 = await deployContract(deployer, "ModulePack102", [mockblast.address, owner.address]) as ModulePack102;
+      await expectDeployed(modulePack102.address);
+      l1DataFeeAnalyzer.register("deploy ModulePack102 impl", modulePack102.deployTransaction);
+    })
+    it("owner can whitelist modules", async function () {
+      let modules = [
+        {
+          module: modulePack102.address,
+          shouldWhitelist: true,
+        },
+      ]
+      let tx = await dataStore.connect(owner).setModuleWhitelist(modules)
+      for(let m of modules) {
+        expect(await dataStore.moduleIsWhitelisted(m.module)).to.eq(m.shouldWhitelist)
+        expect(await dataStore.moduleCanBeInstalled(m.module)).to.eq(m.shouldWhitelist)
+        await expect(tx).to.emit(dataStore, "ModuleWhitelisted").withArgs(m.module, m.shouldWhitelist)
+      }
+    });
+    it("can fetch claimable gas for module pack 102 pt 2", async function () {
+      let account = modulePack102.address
+      let bal0 = await provider.getBalance(account)
+      let bal1 = 0
+      let bal2 = 0
+      let tokens = [AddressZero, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
+      expect(res).deep.eq([bal0, bal1, bal2])
+    })
+    it("cannot claim gas directly on module", async function () {
+      await expect(modulePack102.connect(user1).claimAllGas()).to.be.reverted
+      await expect(modulePack102.connect(user1).claimMaxGas()).to.be.reverted
+    })
+    it("owner can postBotCreationSettings pt 4", async function () {
+      //let sighashes = calcSighashes(modulePack100, 'ModulePack100', true)
+      //sighashes.push(inscribeSighash)
+      //let sighashes = calcSighashes(modulePack101, 'ModulePack101', true)
+      //let sighashes0 = calcSighashes(modulePack102, 'ModulePack102', true)
+      let sighashes2 = [
+        //'0x175e1a7d', // blast()
+        '0x645dd1fa', // claimAllGas()
+        '0xb2b8c93f', // claimMaxGas()
+        '0x660d0d67', // dataStore()
+        '0x1f931c1c', // diamondCut((address,uint8,bytes4[])[],address,bytes)
+        '0x51945447', // execute(address,uint256,bytes,uint8)
+        '0xcdffacc6', // facetAddress(bytes4)
+        '0x52ef6b2c', // facetAddresses()
+        '0xadfca15e', // facetFunctionSelectors(address)
+        '0x7a0ed627', // facets()
+        '0x1626ba7e', // isValidSignature(bytes32,bytes)
+        '0x523e3260', // isValidSigner(address,bytes)
+        '0xd5f50582', // isValidSigner(address)
+        '0xac9650d8', // multicall(bytes[])
+        '0xbc197c81', // onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)
+        '0xf23a6e61', // onERC1155Received(address,address,uint256,uint256,bytes)
+        '0x150b7a02', // onERC721Received(address,address,uint256,bytes)
+        '0x8da5cb5b', // owner()
+        '0x7cb81437', // quoteClaimAllGas()
+        '0xc3eb9fc5', // quoteClaimAllGasWithRevert()
+        '0x97370879', // quoteClaimMaxGas()
+        '0x1f15cbde', // quoteClaimMaxGasWithRevert()
+        '0xa2d2dd3c', // reentrancyGuardState()
+        '0xc19d93fb', // state()
+        '0x01ffc9a7', // supportsInterface(bytes4)
+        '0xfc0c546a', // token()
+        '0xf71a8a0f', // updateSupportedInterfaces(bytes4[],bool[])
+        '0xde52f07d', // inscribe()
+      ]
+      let diamondCut = [
+        {
+          facetAddress: modulePack102.address,
+          action: FacetCutAction.Add,
+          functionSelectors: sighashes2,
+        },
+      ]
+      diamondCutInit = diamondCut
+      let interfaceIDs = [
+        "0x01ffc9a7", // ERC165
+        "0x1f931c1c", // DiamondCut
+        "0x48e2b093", // DiamondLoupe
+        "0x6faff5f1", // ERC6551Account
+        "0x51945447", // ERC6551Executable
+      ]
+      let support = interfaceIDs.map(id=>true)
+      botInitializationCode1 = boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]);
+      botInitializationCode2 = modulePack102.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
+
+      let blastcalldata3 = iblast.interface.encodeFunctionData("configureAutomaticYield")
+      let botInitializationCode3 = modulePack102.interface.encodeFunctionData("execute", [mockblast.address, 0, blastcalldata3, 0]);
+      let blastcalldata4 = iblast.interface.encodeFunctionData("configureClaimableGas")
+      let botInitializationCode4 = modulePack102.interface.encodeFunctionData("execute", [mockblast.address, 0, blastcalldata4, 0]);
+
+      let params = {
+        botImplementation: boomBotAccountImplementation.address,
+        initializationCalls: [
+          botInitializationCode1,
+          botInitializationCode2,
+          botInitializationCode3,
+          botInitializationCode4,
+        ],
+        isPaused: false
+      }
+      let tx = await factory.connect(owner).postBotCreationSettings(params)
+      expect(await factory.getBotCreationSettingsCount()).eq(4)
+      let res = await factory.getBotCreationSettings(4)
+      expect(res.botImplementation).eq(params.botImplementation)
+      expect(res.initializationCalls.length).eq(params.initializationCalls.length)
+      expect(res.isPaused).eq(params.isPaused)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(4)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(4, params.isPaused)
+    })
+    it("can create bot pt 2", async function () {
+      let ts = await boomBotsNft.totalSupply();
+      let bal = await boomBotsNft.balanceOf(user1.address);
+      let botID = ts.add(1);
+      let botRes = await factory.connect(user1).callStatic['createBot(uint256)'](4, {gasLimit: 10_000_000});
+      expect(botRes.botID).eq(botID);
+      expect(await boomBotsNft.exists(botID)).eq(false);
+      let isDeployed1 = await isDeployed(botRes.botAddress)
+      expect(isDeployed1).to.be.false;
+      let tx = await factory.connect(user1)['createBot(uint256)'](4, {gasLimit: 10_000_000});
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(AddressZero, factory.address, botRes.botID);
+      await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(factory.address, user1.address, botRes.botID);
+      expect(await boomBotsNft.totalSupply()).eq(ts.add(1));
+      expect(await boomBotsNft.balanceOf(user1.address)).eq(bal.add(1));
+      expect(await boomBotsNft.exists(botID)).eq(true);
+      expect(await boomBotsNft.ownerOf(botRes.botID)).eq(user1.address);
+      let botInfo = await boomBotsNft.getBotInfo(botID);
+      //expect(botInfo.botAddress).eq(botRes.botAddress); // may change
+      let isDeployed2 = await isDeployed(botInfo.botAddress)
+      expect(isDeployed2).to.be.true;
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
+      tbaccount2 = await ethers.getContractAt(abi, botInfo.botAddress) as BoomBotAccount;
+      l1DataFeeAnalyzer.register("createBot", tx);
+    });
+    it("has the correct modules", async function () {
+      let diamondAccount = await ethers.getContractAt("ModulePack102", tbaccount2.address) as ModulePack102;
+      // facets(), facetAddresses()
+      let facets = await diamondAccount.facets();
+      let facetAddresses = await diamondAccount.facetAddresses();
+      let sighashes = calcSighashes(boomBotAccountImplementation, 'BoomBotAccount')
+      diamondCutInit = [
+        {
+          facetAddress: diamondAccount.address,
+          action: FacetCutAction.Add,
+          functionSelectors: sighashes,
+        },
+        ...diamondCutInit
+      ]
+      expect(facets.length).eq(diamondCutInit.length);
+      for(let i = 0; i < diamondCutInit.length; i++) {
+        expect(facets[i].facetAddress).eq(diamondCutInit[i].facetAddress);
+        expect(facetAddresses[i]).eq(diamondCutInit[i].facetAddress);
+        assert.sameMembers(facets[i].functionSelectors, diamondCutInit[i].functionSelectors);
+        // facetFunctionSelectors()
+        let selectors = await diamondAccount.facetFunctionSelectors(facetAddresses[i]);
+        assert.sameMembers(selectors, diamondCutInit[i].functionSelectors);
+        // facetAddress()
+        for(let j = 0; j < diamondCutInit[i].functionSelectors.length; j++) {
+          let selector = diamondCutInit[i].functionSelectors[j];
+          let facetAddress = await diamondAccount.facetAddress(selector);
+          expect(facetAddress).eq(diamondCutInit[i].facetAddress);
+        }
+      }
+    });
+    it("can fetch claimable gas for accountProxy pt 2", async function () {
+      let account = tbaccount2.address
+      let bal0 = await provider.getBalance(account)
+      let bal1 = 2255
+      let bal2 = 1500
+      let tokens = [AddressZero, AddressOne, AddressTwo]
+      let tx = await balanceFetcher.fetchBalances(account, tokens)
+      let res = await balanceFetcher.callStatic.fetchBalances(account, tokens)
+      expect(res).deep.eq([bal0, bal1, bal2])
+    })
+    it("non owner cannot claim gas", async function () {
+      await expect(tbaccount2.connect(user2).claimAllGas()).to.be.revertedWithCustomError(tbaccount2, "ERC6551InvalidSigner")
+      await expect(tbaccount2.connect(user2).claimMaxGas()).to.be.revertedWithCustomError(tbaccount2, "ERC6551InvalidSigner")
+    })
+    it("owner can claim gas", async function () {
+      let res1 = await tbaccount2.connect(user1).callStatic.claimAllGas()
+      let res2 = await tbaccount2.connect(user1).callStatic.claimMaxGas()
+      expect(res1).eq(2255)
+      expect(res2).eq(1500)
+      let tx1 = await tbaccount2.connect(user1).claimAllGas()
+      let tx2 = await tbaccount2.connect(user1).claimMaxGas()
+    })
+    it("cannot claim gas if not configured", async function () {
+      let txdata = iblast.interface.encodeFunctionData("configureVoidGas")
+      await tbaccount2.connect(user1).execute(mockblast.address, 0, txdata, 0)
+      await expect(tbaccount2.connect(user1).claimAllGas()).to.be.revertedWith("not configured claimable gas")
+      await expect(tbaccount2.connect(user1).claimMaxGas()).to.be.revertedWith("not configured claimable gas")
+    })
+  })
 
   describe("L1 gas fees", function () {
     it("calculate", async function () {

@@ -15,6 +15,8 @@ const polygon_fork = { url: process.env.POLYGON_URL||'', blockNumber:parseInt(pr
 const mumbai_fork = { url: process.env.MUMBAI_URL||'', blockNumber:parseInt(process.env.MUMBAI_FORK_BLOCK)||undefined };
 const base_fork = { url: process.env.BASE_URL||'', blockNumber:parseInt(process.env.BASE_FORK_BLOCK)||undefined }
 const base_goerli_fork = { url: process.env.BASE_GOERLI_URL||'', blockNumber:parseInt(process.env.BASE_GOERLI_FORK_BLOCK)||undefined };
+//const blast_fork = { url: process.env.BLAST_URL||'', blockNumber:parseInt(process.env.BLAST_FORK_BLOCK)||undefined };
+const blast_sepolia_fork = { url: process.env.BLAST_SEPOLIA_URL||'', blockNumber:parseInt(process.env.BLAST_SEPOLIA_FORK_BLOCK)||undefined };
 const no_fork = undefined;
 const forking = (
     process.env.FORK_NETWORK === "ethereum"       ? ethereum_fork
@@ -24,6 +26,7 @@ const forking = (
   : process.env.FORK_NETWORK === "mumbai"         ? mumbai_fork
   : process.env.FORK_NETWORK === "base"           ? base_fork
   : process.env.FORK_NETWORK === "basegoerli"     ? base_goerli_fork
+  //: process.env.FORK_NETWORK === "blast"          ? blast_fork
   : process.env.FORK_NETWORK === "blastsepolia"   ? blast_sepolia_fork
   : no_fork
 );
@@ -90,7 +93,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 2000,
+            runs: 200_000,
           },
         },
       },
@@ -156,7 +159,5 @@ const config: HardhatUserConfig = {
      ]
   }
 };
-//console.log("config")
-//console.log(config)
 
 export default config;

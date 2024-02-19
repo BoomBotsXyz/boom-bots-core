@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast, MockERC20Rebasing, PreBOOM } from "./../typechain-types";
+import { BalanceFetcher, MockERC20, MockGasBurner, IBlast, MockBlast, MockERC20Rebasing, PreBOOM, GasCollector } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -21,6 +21,8 @@ import L1DataFeeAnalyzer from "../scripts/utils/L1DataFeeAnalyzer";
 
 const { AddressZero, WeiPerEther, MaxUint256, Zero } = ethers.constants;
 const WeiPerUsdc = BN.from(1_000_000); // 6 decimals
+const AddressOne = "0x0000000000000000000000000000000000000001"
+const AddressTwo = "0x0000000000000000000000000000000000000002"
 
 const ERC6551_REGISTRY_ADDRESS = "0x000000006551c19487814612e58FE06813775758";
 const BLAST_ADDRESS            = "0x4300000000000000000000000000000000000002";
@@ -43,9 +45,10 @@ describe("BalanceFetcher", function () {
   let networkSettings: any;
   let snapshot: BN;
 
+  let gasCollector: GasCollector;
   let balanceFetcher: BalanceFetcher;
   let gasBurner: MockGasBurner; // inherits blastable
-  let gasBurner2: MockGasBurner2; // inherits blastable
+  let gasBurner2: MockGasBurner; // inherits blastable
   let iblast: any;
   let mockblast: MockBlast;
   let preboom: PreBOOM;
@@ -72,22 +75,22 @@ describe("BalanceFetcher", function () {
   });
 
   describe("setup", function () {
+    it("can deploy gas collector", async function () {
+      gasCollector = await deployContract(deployer, "GasCollector", [owner.address, BLAST_ADDRESS]);
+      await expectDeployed(gasCollector.address);
+      expect(await gasCollector.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy GasCollector", gasCollector.deployTransaction);
+    })
     it("can deploy BalanceFetcher", async function () {
-      balanceFetcher = await deployContract(deployer, "BalanceFetcher", [owner.address]) as BalanceFetcher;
+      balanceFetcher = await deployContract(deployer, "BalanceFetcher", [owner.address, BLAST_ADDRESS, gasCollector.address]) as BalanceFetcher;
       await expectDeployed(balanceFetcher.address);
       l1DataFeeAnalyzer.register("deploy BalanceFetcher", balanceFetcher.deployTransaction);
     });
     it("can deploy gas burner", async function () {
-      gasBurner = await deployContract(deployer, "MockGasBurner", [owner.address]);
+      gasBurner = await deployContract(deployer, "MockGasBurner", [owner.address, BLAST_ADDRESS, gasCollector.address]) as MockGasBurner;
       await expectDeployed(gasBurner.address);
       expect(await gasBurner.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy MockGasBurner", gasBurner.deployTransaction);
-    })
-    it("can deploy gas burner 2", async function () {
-      gasBurner2 = await deployContract(deployer, "MockGasBurner2", [owner.address]);
-      await expectDeployed(gasBurner2.address);
-      expect(await gasBurner2.owner()).eq(owner.address);
-      l1DataFeeAnalyzer.register("deploy MockGasBurner2", gasBurner2.deployTransaction);
     })
     it("can deploy mockblast", async function () {
       mockblast = await deployContract(deployer, "MockBlast", []);
@@ -98,18 +101,11 @@ describe("BalanceFetcher", function () {
         value: WeiPerEther
       })
     })
-    it("can configure gas burner 2", async function () {
-      await gasBurner2.setBlast(mockblast.address)
-      let blastcalldata1 = iblast.interface.encodeFunctionData("configureAutomaticYield")
-      let mctxdata1 = gasBurner2.interface.encodeFunctionData("callBlast", [blastcalldata1]);
-      let blastcalldata2 = iblast.interface.encodeFunctionData("configureClaimableGas")
-      let mctxdata2 = gasBurner2.interface.encodeFunctionData("callBlast", [blastcalldata2]);
-      let txdatas = [mctxdata1, mctxdata2]
-      await gasBurner2.connect(owner).multicall(txdatas)
-      await user1.sendTransaction({
-        to: gasBurner2.address,
-        value: WeiPerEther
-      })
+    it("can deploy gas burner 2", async function () {
+      gasBurner2 = await deployContract(deployer, "MockGasBurner", [owner.address, mockblast.address, gasCollector.address]) as MockGasBurner;
+      await expectDeployed(gasBurner2.address);
+      expect(await gasBurner2.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy MockGasBurner", gasBurner2.deployTransaction);
     })
     it("can use gas burner", async function () {
       await gasBurner2.burnGas(10)
@@ -162,8 +158,6 @@ describe("BalanceFetcher", function () {
       let bal3 = await erc20c.balanceOf(user1.address)
       let bal4 = 0
       let bal5 = 0
-      const AddressOne = "0x0000000000000000000000000000000000000001"
-      const AddressTwo = "0x0000000000000000000000000000000000000002"
       let account = user1.address
       let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
       let tx = await balanceFetcher.fetchBalances(account, tokens)
@@ -177,8 +171,6 @@ describe("BalanceFetcher", function () {
       let bal3 = await erc20c.balanceOf(ERC6551_REGISTRY_ADDRESS)
       let bal4 = 0
       let bal5 = 0
-      const AddressOne = "0x0000000000000000000000000000000000000001"
-      const AddressTwo = "0x0000000000000000000000000000000000000002"
       let account = ERC6551_REGISTRY_ADDRESS
       let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
       let tx = await balanceFetcher.fetchBalances(account, tokens)
@@ -192,8 +184,6 @@ describe("BalanceFetcher", function () {
       let bal3 = await erc20c.balanceOf(gasBurner.address)
       let bal4 = 0 // these SHOULD be nonzero, but
       let bal5 = 0
-      const AddressOne = "0x0000000000000000000000000000000000000001"
-      const AddressTwo = "0x0000000000000000000000000000000000000002"
       let account = gasBurner.address
       let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
       let tx = await balanceFetcher.fetchBalances(account, tokens)
@@ -205,10 +195,8 @@ describe("BalanceFetcher", function () {
       let bal1 = await erc20a.balanceOf(gasBurner2.address)
       let bal2 = await erc20b.balanceOf(gasBurner2.address)
       let bal3 = await erc20c.balanceOf(gasBurner2.address)
-      let bal4 = 2255
-      let bal5 = 1500
-      const AddressOne = "0x0000000000000000000000000000000000000001"
-      const AddressTwo = "0x0000000000000000000000000000000000000002"
+      let bal4 = 0
+      let bal5 = 0
       let account = gasBurner2.address
       let tokens = [AddressZero, erc20a.address, erc20b.address, erc20c.address, AddressOne, AddressTwo]
       let tx = await balanceFetcher.fetchBalances(account, tokens)
@@ -324,14 +312,14 @@ describe("BalanceFetcher", function () {
       expect(res[1].quoteAmountMaxGas).eq(0)
       expect(res[2].quoteAmountAllGas).eq(0)
       expect(res[2].quoteAmountMaxGas).eq(0)
-      expect(res[3].quoteAmountAllGas).eq(2255)
-      expect(res[3].quoteAmountMaxGas).eq(1500)
+      expect(res[3].quoteAmountAllGas).eq(0)
+      expect(res[3].quoteAmountMaxGas).eq(0)
     })
   })
 
   describe("preboom", function () {
     it("can deploy", async function () {
-      preboom = await deployContract(deployer, "PreBOOM", [owner.address]) as PreBOOM;
+      preboom = await deployContract(deployer, "PreBOOM", [owner.address, BLAST_ADDRESS, gasCollector.address]) as PreBOOM;
       await expectDeployed(preboom.address);
       l1DataFeeAnalyzer.register("deploy PreBOOM", preboom.deployTransaction);
       expect(await preboom.name()).eq('Precursor BOOM!')

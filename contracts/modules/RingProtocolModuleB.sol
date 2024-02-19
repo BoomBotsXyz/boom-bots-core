@@ -6,7 +6,7 @@ import { ERC6551AccountLibrary } from "./../libraries/modules/ERC6551AccountLibr
 import { ReentrancyGuardLibrary } from "./../libraries/modules/ReentrancyGuardLibrary.sol";
 import { IUniversalRouter } from "./../interfaces/external/RingProtocol/IUniversalRouter.sol";
 import { IRingProtocolModuleB } from "./../interfaces/modules/IRingProtocolModuleB.sol";
-import { BlastableTarget } from "./../utils/BlastableTarget.sol";
+import { Blastable } from "./../utils/Blastable.sol";
 
 
 /**
@@ -16,9 +16,17 @@ import { BlastableTarget } from "./../utils/BlastableTarget.sol";
  *
  * Uses the Ring Protocol UniversalRouter to swap ETH for WETH, USDC, USDT, DAI, BOLT, and RGB.
  */
-contract RingProtocolModuleB is IRingProtocolModuleB, BlastableTarget {
+contract RingProtocolModuleB is IRingProtocolModuleB, Blastable {
 
-    constructor(address implGasCollector) BlastableTarget(implGasCollector) {}
+    /**
+     * @notice Constructs the RingProtocolModuleB contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
+     */
+    constructor(
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) {}
 
     /***************************************
     CONSTANTS
@@ -51,7 +59,7 @@ contract RingProtocolModuleB is IRingProtocolModuleB, BlastableTarget {
     /**
      * @notice Executes trades in Ring Protocol.
      * Will trade eth for usdc, usdt, dai, bolt, and rgb.
-     * Can only be called by the contract owner.
+     * Can only be called by the TBA owner.
      * @param ethAmount The amount of eth to input.
      */
     function executeRingProtocolModuleB(uint256 ethAmount) external payable override {

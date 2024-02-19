@@ -2,12 +2,10 @@
 pragma solidity 0.8.24;
 
 import { Multicall } from "./Multicall.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Errors } from "./../libraries/Errors.sol";
-import { Calls } from "./../libraries/Calls.sol";
 import { IDataStore } from "./../interfaces/utils/IDataStore.sol";
 import { Blastable } from "./Blastable.sol";
+import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 
 
 /**
@@ -27,7 +25,7 @@ import { Blastable } from "./Blastable.sol";
  *
  * The third is a store of fees. The protocol charges a fee on swaps and flash loans, which are then paid out as dividends. The fee percentage and receiver are stored here. The application of the fee is applied differently based on the type. Read the respective modules for more details.
  */
-contract DataStore is IDataStore, Multicall, Blastable {
+contract DataStore is IDataStore, Multicall, Blastable, Ownable2Step {
 
     /***************************************
     GLOBAL VARIABLES
@@ -73,10 +71,14 @@ contract DataStore is IDataStore, Multicall, Blastable {
     /**
      * @notice Constructs the DataStore contract.
      * @param owner_ The contract owner.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
      */
     constructor(
-        address owner_
-    ) {
+        address owner_,
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) {
         _transferOwnership(owner_);
     }
 

@@ -10,8 +10,7 @@ import { ERC165Module } from "./ERC165Module.sol";
 import { ERC721ReceiverModule } from "./ERC721ReceiverModule.sol";
 import { ERC1155ReceiverModule } from "./ERC1155ReceiverModule.sol";
 import { InscriptionModule } from "./InscriptionModule.sol";
-import { BlastableTarget } from "./../utils/BlastableTarget.sol";
-import { BlastableBase } from "./../utils/BlastableBase.sol";
+import { Blastable } from "./../utils/Blastable.sol";
 
 
 /**
@@ -30,9 +29,18 @@ contract ModulePack101 is
     ERC721ReceiverModule,
     ERC1155ReceiverModule,
     InscriptionModule,
-    BlastableTarget
+    Blastable
 {
-    constructor(address implGasCollector) BlastableTarget(implGasCollector) {}
+
+    /**
+     * @notice Constructs the ModulePack101 contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
+     */
+    constructor(
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) {}
 
     /***************************************
     RECEIVE FUNCTIONS
@@ -41,5 +49,5 @@ contract ModulePack101 is
     /**
      * @notice Allows this contract to receive the gas token.
      */
-    receive() external payable virtual override (InscriptionModule, BlastableBase) {}
+    receive() external payable virtual override (InscriptionModule, Blastable) {}
 }

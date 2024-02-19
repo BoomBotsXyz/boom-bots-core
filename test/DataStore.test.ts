@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC721ReceiverModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore, GasCollector } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -50,6 +50,7 @@ describe("DataStore", function () {
   let user4: SignerWithAddress;
   let user5: SignerWithAddress;
 
+  let gasCollector: GasCollector;
   let boomBotsNft: BoomBots;
   let boomBotAccountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
   let dataStore: DataStore;
@@ -116,14 +117,20 @@ describe("DataStore", function () {
   });
 
   describe("setup", function () {
+    it("can deploy gas collector", async function () {
+      gasCollector = await deployContract(deployer, "GasCollector", [owner.address, BLAST_ADDRESS]);
+      await expectDeployed(gasCollector.address);
+      expect(await gasCollector.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy GasCollector", gasCollector.deployTransaction);
+    })
     it("can deploy data store", async function () {
       // to deployer
-      dataStore = await deployContract(deployer, "DataStore", [deployer.address]);
+      dataStore = await deployContract(deployer, "DataStore", [deployer.address, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
       // to owner
-      dataStore = await deployContract(deployer, "DataStore", [owner.address]);
+      dataStore = await deployContract(deployer, "DataStore", [owner.address, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
@@ -877,7 +884,7 @@ describe("DataStore", function () {
     });
     it("can init to address zero", async function () {
       // role begins revoked
-      dataStore = await deployContract(deployer, "DataStore", [AddressZero]);
+      dataStore = await deployContract(deployer, "DataStore", [AddressZero, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(AddressZero);
       expect(await dataStore.pendingOwner()).eq(AddressZero);

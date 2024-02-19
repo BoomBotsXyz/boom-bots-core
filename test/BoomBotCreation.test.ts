@@ -8,7 +8,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 const { expect, assert } = chai;
 
-import { IERC6551Registry, ERC6551Account, BoomBots, BoomBotAccount, MockBlastableAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC165Module, FallbackModule, RevertModule, Pack100, BoomBotsFactory01, MockERC20, MockERC721, DataStore, RevertAccount, MockERC1271 } from "./../typechain-types";
+import { IERC6551Registry, ERC6551Account, BoomBots, BoomBotAccount, MockBlastableAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC165Module, FallbackModule, RevertModule, Pack100, BoomBotsFactory01, MockERC20, MockERC721, DataStore, RevertAccount, MockERC1271, GasCollector } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -51,10 +51,10 @@ describe("BoomBotCreation", function () {
 
   let erc6551Registry: IERC6551Registry;
 
+  let gasCollector: GasCollector;
   let boomBotsNft: BoomBots;
   let erc6551AccountImplementation: ERC6551Account; // the base implementation for token bound accounts
   let boomBotAccountImplementation: BoomBotAccount; // the base implementation for token bound accounts
-  let mockAccountImplementation: MockBlastableAccount;
   let dataStore: DataStore;
   let tbaccount1: ERC6551; // an account bound to a token
   let tbaccount2: BoomBotAccount; // an account bound to a token
@@ -124,7 +124,7 @@ describe("BoomBotCreation", function () {
     erc6551Registry = await ethers.getContractAt("IERC6551Registry", ERC6551_REGISTRY_ADDRESS) as IERC6551Registry;
     combinedAbi = getCombinedAbi([
       "artifacts/contracts/accounts/BoomBotAccount.sol/BoomBotAccount.json",
-      "artifacts/contracts/mocks/accounts/MockBlastableAccount.sol/MockBlastableAccount.json",
+      //"artifacts/contracts/mocks/accounts/MockBlastableAccount.sol/MockBlastableAccount.json",
       "artifacts/contracts/modules/ModulePack100.sol/ModulePack100.json",
       /*
       "artifacts/contracts/modules/ERC2535Module.sol/ERC2535Module.json",
@@ -146,14 +146,20 @@ describe("BoomBotCreation", function () {
   });
 
   describe("setup", function () {
+    it("can deploy gas collector", async function () {
+      gasCollector = await deployContract(deployer, "GasCollector", [owner.address, BLAST_ADDRESS]);
+      await expectDeployed(gasCollector.address);
+      expect(await gasCollector.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy GasCollector", gasCollector.deployTransaction);
+    })
     it("can deploy BoomBots ERC721", async function () {
       // to deployer
-      boomBotsNft = await deployContract(deployer, "BoomBots", [ERC6551_REGISTRY_ADDRESS, deployer.address]) as BoomBots;
+      boomBotsNft = await deployContract(deployer, "BoomBots", [deployer.address, BLAST_ADDRESS, gasCollector.address, ERC6551_REGISTRY_ADDRESS]) as BoomBots;
       await expectDeployed(boomBotsNft.address);
       expect(await boomBotsNft.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy Boombots", boomBotsNft.deployTransaction);
       // to owner
-      boomBotsNft = await deployContract(deployer, "BoomBots", [ERC6551_REGISTRY_ADDRESS, owner.address]) as BoomBots;
+      boomBotsNft = await deployContract(deployer, "BoomBots", [owner.address, BLAST_ADDRESS, gasCollector.address, ERC6551_REGISTRY_ADDRESS]) as BoomBots;
       await expectDeployed(boomBotsNft.address);
       expect(await boomBotsNft.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy Boombots", boomBotsNft.deployTransaction);
@@ -169,22 +175,18 @@ describe("BoomBotCreation", function () {
       await expectDeployed(erc6551AccountImplementation.address);
       l1DataFeeAnalyzer.register("deploy ERC6551Account impl", erc6551AccountImplementation.deployTransaction);
       // BooomBotAccount
-      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", [deployer.address]) as BoomBotAccount;
+      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", [BLAST_ADDRESS, deployer.address]) as BoomBotAccount;
       await expectDeployed(boomBotAccountImplementation.address);
       l1DataFeeAnalyzer.register("deploy BoomBotAccount impl", boomBotAccountImplementation.deployTransaction);
-      // MockBlastableAccount
-      mockAccountImplementation = await deployContract(deployer, "MockBlastableAccount", [owner.address, BLAST_ADDRESS]) as MockBlastableAccount;
-      await expectDeployed(mockAccountImplementation.address);
-      l1DataFeeAnalyzer.register("deploy MockBlastableAccount impl", mockAccountImplementation.deployTransaction);
     });
     it("can deploy data store", async function () {
       // to deployer
-      dataStore = await deployContract(deployer, "DataStore", [deployer.address]);
+      dataStore = await deployContract(deployer, "DataStore", [deployer.address, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
       // to owner
-      dataStore = await deployContract(deployer, "DataStore", [owner.address]);
+      dataStore = await deployContract(deployer, "DataStore", [owner.address, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
@@ -221,12 +223,12 @@ describe("BoomBotCreation", function () {
     });
     it("can deploy BoomBotsFactory01", async function () {
       // to deployer
-      factory = await deployContract(deployer, "BoomBotsFactory01", [deployer.address, boomBotsNft.address]) as BoomBotsFactory01;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [deployer.address, BLAST_ADDRESS, gasCollector.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
       // to owner
-      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, boomBotsNft.address]) as BoomBotsFactory01;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, BLAST_ADDRESS, gasCollector.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
@@ -834,9 +836,9 @@ describe("BoomBotCreation", function () {
       ]
       let support = interfaceIDs.map(id=>true)
       let params = {
-        botImplementation: mockAccountImplementation.address,
+        botImplementation: boomBotAccountImplementation.address,
         initializationCalls: [
-          mockAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]),
+          boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]),
           erc165Module.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]),
         ],
         isPaused: false
@@ -851,10 +853,10 @@ describe("BoomBotCreation", function () {
       await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(4, params.isPaused)
       diamondCut = [
         {
-          facetAddress: mockAccountImplementation.address,
+          facetAddress: boomBotAccountImplementation.address,
           action: FacetCutAction.Add,
-          //functionSelectors: calcSighashes(mockAccountImplementation, 'mockAccountImplementation'),
-          functionSelectors: calcSighashes(boomBotAccountImplementation, 'mockAccountImplementation'),
+          //functionSelectors: calcSighashes(boomBotAccountImplementation, 'boomBotAccountImplementation'),
+          functionSelectors: calcSighashes(boomBotAccountImplementation, 'boomBotAccountImplementation'),
         },
       ].concat(diamondCut)
       diamondCutInits[10] = JSON.parse(JSON.stringify(diamondCut))
@@ -888,7 +890,7 @@ describe("BoomBotCreation", function () {
       expect(await boomBotsNft.isAddressBot(botInfo.botAddress)).eq(true);
       let isDeployed2 = await isDeployed(botInfo.botAddress)
       expect(isDeployed2).to.be.true;
-      expect(botInfo.implementationAddress).eq(mockAccountImplementation.address);
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
       tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
       l1DataFeeAnalyzer.register("createBot", tx);
       diamondCutInits[10][0].facetAddress = botInfo.botAddress
@@ -919,7 +921,7 @@ describe("BoomBotCreation", function () {
       expect(await boomBotsNft.isAddressBot(botInfo.botAddress)).eq(true);
       let isDeployed2 = await isDeployed(botInfo.botAddress)
       expect(isDeployed2).to.be.true;
-      expect(botInfo.implementationAddress).eq(mockAccountImplementation.address);
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
       tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
       l1DataFeeAnalyzer.register("createBot", tx);
       diamondCutInits[11][0].facetAddress = botInfo.botAddress
@@ -949,7 +951,7 @@ describe("BoomBotCreation", function () {
       expect(await boomBotsNft.isAddressBot(botInfo.botAddress)).eq(true);
       let isDeployed2 = await isDeployed(botInfo.botAddress)
       expect(isDeployed2).to.be.true;
-      expect(botInfo.implementationAddress).eq(mockAccountImplementation.address);
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
       tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
       l1DataFeeAnalyzer.register("createBot", tx);
       diamondCutInits[12][0].facetAddress = botInfo.botAddress
@@ -984,7 +986,7 @@ describe("BoomBotCreation", function () {
       expect(await boomBotsNft.isAddressBot(botInfo.botAddress)).eq(true);
       let isDeployed2 = await isDeployed(botInfo.botAddress)
       expect(isDeployed2).to.be.true;
-      expect(botInfo.implementationAddress).eq(mockAccountImplementation.address);
+      expect(botInfo.implementationAddress).eq(boomBotAccountImplementation.address);
       tbaccount2 = await ethers.getContractAt("BoomBotAccount", botInfo.botAddress) as BoomBotAccount;
       l1DataFeeAnalyzer.register("createBot", tx);
       diamondCutInits[13][0].facetAddress = botInfo.botAddress
@@ -1301,7 +1303,7 @@ describe("BoomBotCreation", function () {
               // facets(), facetAddresses()
               let facets = await diamondAccount.facets();
               let facetAddresses = await diamondAccount.facetAddresses();
-              let c = (accountType == "BoomBotAccount" ? boomBotAccountImplementation : mockAccountImplementation)
+              let c = (accountType == "BoomBotAccount" ? boomBotAccountImplementation : boomBotAccountImplementation)
 
               let diamondCutExpected = diamondCutInits[botID]
               /*
@@ -1317,7 +1319,7 @@ describe("BoomBotCreation", function () {
               */
               //console.log(`testing correct modules ${botID}`)
               //console.log(botAccount.address, "bot account")
-              //console.log(mockAccountImplementation.address, "impl")
+              //console.log(boomBotAccountImplementation.address, "impl")
               //console.log(facets.map(f=>f.facetAddress))
               //console.log(diamondCutExpected.map(f=>f.facetAddress))
               //console.log(facets)

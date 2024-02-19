@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack101, ModulePack101, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast } from "./../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack101, ModulePack101, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore, RevertAccount, IBlast, GasCollector } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -50,6 +50,7 @@ describe("BoomBotAccountModulePack101", function () {
   let user4: SignerWithAddress;
   let user5: SignerWithAddress;
 
+  let gasCollector: GasCollector;
   let boomBotsNft: BoomBots;
   let boomBotAccountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
   let dataStore: DataStore;
@@ -134,14 +135,20 @@ describe("BoomBotAccountModulePack101", function () {
   });
 
   describe("setup", function () {
+    it("can deploy gas collector", async function () {
+      gasCollector = await deployContract(deployer, "GasCollector", [owner.address, BLAST_ADDRESS]);
+      await expectDeployed(gasCollector.address);
+      expect(await gasCollector.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy GasCollector", gasCollector.deployTransaction);
+    })
     it("can deploy BoomBots ERC721", async function () {
       // to deployer
-      boomBotsNft = await deployContract(deployer, "BoomBots", [ERC6551_REGISTRY_ADDRESS, deployer.address]) as BoomBots;
+      boomBotsNft = await deployContract(deployer, "BoomBots", [deployer.address, BLAST_ADDRESS, gasCollector.address, ERC6551_REGISTRY_ADDRESS]) as BoomBots;
       await expectDeployed(boomBotsNft.address);
       expect(await boomBotsNft.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy Boombots", boomBotsNft.deployTransaction);
       // to owner
-      boomBotsNft = await deployContract(deployer, "BoomBots", [ERC6551_REGISTRY_ADDRESS, owner.address]) as BoomBots;
+      boomBotsNft = await deployContract(deployer, "BoomBots", [owner.address, BLAST_ADDRESS, gasCollector.address, ERC6551_REGISTRY_ADDRESS]) as BoomBots;
       await expectDeployed(boomBotsNft.address);
       expect(await boomBotsNft.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy Boombots", boomBotsNft.deployTransaction);
@@ -153,18 +160,18 @@ describe("BoomBotAccountModulePack101", function () {
     });
     it("can deploy account implementations", async function () {
       //boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", []) as BoomBotAccount;
-      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", [owner.address]) as BoomBotAccount;
+      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", [BLAST_ADDRESS, owner.address]) as BoomBotAccount;
       await expectDeployed(boomBotAccountImplementation.address);
       l1DataFeeAnalyzer.register("deploy BoomBotAccount impl", boomBotsNft.deployTransaction);
     });
     it("can deploy data store", async function () {
       // to deployer
-      dataStore = await deployContract(deployer, "DataStore", [deployer.address]);
+      dataStore = await deployContract(deployer, "DataStore", [deployer.address, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
       // to owner
-      dataStore = await deployContract(deployer, "DataStore", [owner.address]);
+      dataStore = await deployContract(deployer, "DataStore", [owner.address, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
@@ -175,7 +182,7 @@ describe("BoomBotAccountModulePack101", function () {
       await expectDeployed(modulePack100.address);
       l1DataFeeAnalyzer.register("deploy ModulePack100 impl", modulePack100.deployTransaction);
       // ModulePack101
-      modulePack101 = await deployContract(deployer, "ModulePack101", [owner.address]) as ERC2535Module;
+      modulePack101 = await deployContract(deployer, "ModulePack101", [BLAST_ADDRESS, owner.address]) as ModulePack101;
       await expectDeployed(modulePack101.address);
       l1DataFeeAnalyzer.register("deploy ModulePack101 impl", modulePack101.deployTransaction);
       /*
@@ -223,12 +230,12 @@ describe("BoomBotAccountModulePack101", function () {
     });
     it("can deploy BoomBotsFactory01", async function () {
       // to deployer
-      factory = await deployContract(deployer, "BoomBotsFactory01", [deployer.address, boomBotsNft.address]) as BoomBotsFactory01;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [deployer.address, BLAST_ADDRESS, gasCollector.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(deployer.address);
       l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
       // to owner
-      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, boomBotsNft.address]) as BoomBotsFactory01;
+      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, BLAST_ADDRESS, gasCollector.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);

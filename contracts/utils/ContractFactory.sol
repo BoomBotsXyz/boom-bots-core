@@ -6,6 +6,7 @@ import { Calls } from "./../libraries/Calls.sol";
 import { Errors } from "./../libraries/Errors.sol";
 import { IContractFactory } from "./../interfaces/utils/IContractFactory.sol";
 import { Blastable } from "./Blastable.sol";
+import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 
 
 /**
@@ -17,15 +18,19 @@ import { Blastable } from "./Blastable.sol";
  *
  * Code borrowed from https://etherscan.io/address/0xce0042B868300000d44A59004Da54A005ffdcf9f
  */
-contract ContractFactory is IContractFactory, Multicall, Blastable {
+contract ContractFactory is IContractFactory, Multicall, Blastable, Ownable2Step {
 
     /**
      * @notice Constructs the factory contract.
-     * @param owner_ The contract owner.
+     * @param owner_ The owner of the contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
      */
     constructor(
-        address owner_
-    ) {
+        address owner_,
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) {
         _transferOwnership(owner_);
     }
 

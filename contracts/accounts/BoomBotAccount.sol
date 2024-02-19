@@ -6,8 +6,7 @@ import { IBoomBotAccount } from "./../interfaces/accounts/IBoomBotAccount.sol";
 import { ERC2535Library } from "./../libraries/modules/ERC2535Library.sol";
 import { ReentrancyGuardLibrary } from "./../libraries/modules/ReentrancyGuardLibrary.sol";
 import { DataStoreLibrary } from "./../libraries/modules/DataStoreLibrary.sol";
-import { BlastableBase } from "./../utils/BlastableBase.sol";
-import { BlastableTarget } from "./../utils/BlastableTarget.sol";
+import { Blastable } from "./../utils/Blastable.sol";
 
 
 /**
@@ -15,9 +14,17 @@ import { BlastableTarget } from "./../utils/BlastableTarget.sol";
  * @author Blue Matter Technologies
  * @notice The base contract for bot accounts. May be deployed and used as-is or extended via modules.
  */
-contract BoomBotAccount is IBoomBotAccount, BlastableTarget {
+contract BoomBotAccount is IBoomBotAccount, Blastable {
 
-    constructor(address implGasCollector) BlastableTarget(implGasCollector) {}
+      /**
+       * @notice Constructs the BoomBotAccount contract.
+       * @param blast_ The address of the blast gas reward contract.
+       * @param governor_ The address of the gas governor.
+       */
+      constructor(
+          address blast_,
+          address governor_
+      ) Blastable(blast_, governor_) {}
 
     /**
      * @notice Initializes the account.
@@ -29,19 +36,9 @@ contract BoomBotAccount is IBoomBotAccount, BlastableTarget {
         // set data store. also handles double init check
         DataStoreLibrary.setDataStore(dataStore_);
         // cut own functions
-        bytes4[] memory selectors = new bytes4[](12);
+        bytes4[] memory selectors = new bytes4[](2);
         selectors[0] = BoomBotAccount.initialize.selector;
-        selectors[1] = BlastableBase.blast.selector;
-        selectors[2] = BlastableBase.quoteClaimAllGas.selector;
-        selectors[3] = BlastableBase.quoteClaimAllGasWithRevert.selector;
-        selectors[4] = BlastableBase.quoteClaimMaxGas.selector;
-        selectors[5] = BlastableBase.quoteClaimMaxGasWithRevert.selector;
-        selectors[6] = BlastableTarget.implementation.selector;
-        selectors[7] = BlastableTarget.zzz_implGasCollector.selector;
-        selectors[8] = BlastableTarget.zzz_implCallBlast.selector;
-        selectors[9] = BlastableTarget.zzz_implClaimAllGas.selector;
-        selectors[10] = BlastableTarget.zzz_implClaimMaxGas.selector;
-        selectors[11] = BlastableTarget.zzz_implSweep.selector;
+        selectors[1] = Blastable.blast.selector;
         ERC2535Library.FacetCut[] memory cut = new ERC2535Library.FacetCut[](1);
         cut[0] = ERC2535Library.FacetCut({
             facetAddress: address(this),
@@ -70,5 +67,5 @@ contract BoomBotAccount is IBoomBotAccount, BlastableTarget {
      * @notice Allows this contract to receive the gas token.
      */
     // solhint-disable-next-line no-empty-blocks
-    receive() external payable override (IBoomBotAccount,BlastableBase) {}
+    receive() external payable override (IBoomBotAccount,Blastable) {}
 }

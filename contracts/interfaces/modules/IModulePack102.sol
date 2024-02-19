@@ -3,23 +3,29 @@ pragma solidity 0.8.24;
 
 
 /**
- * @title IBlastableBase
+ * @title IModulePack102
  * @author Blue Matter Technologies
- * @notice An abstract contract that provides access to basic Blast functions.
- *
- * This primarily involves configuring the connection to Blast and quoting the gas rewards.
+ * @notice
  */
-interface IBlastableBase {
+interface IModulePack102 {
 
     /***************************************
-    VIEW FUNCTIONS
+    CLAIM FUNCTIONS
     ***************************************/
 
     /**
-     * @notice Returns the address of the Blast contract.
-     * @return blast_ The address of the Blast contract.
+     * @notice Claims all gas from the blast gas reward contract.
+     * Can only be called by the TBA owner.
+     * @return amountClaimed The amount of gas claimed.
      */
-    function blast() external view returns (address blast_);
+    function claimAllGas() external payable returns (uint256 amountClaimed);
+
+    /**
+     * @notice Claims max gas from the blast gas reward contract.
+     * Can only be called by the TBA owner.
+     * @return amountClaimed The amount of gas claimed.
+     */
+    function claimMaxGas() external payable returns (uint256 amountClaimed);
 
     /***************************************
     QUOTE CLAIM FUNCTIONS
@@ -58,13 +64,4 @@ interface IBlastableBase {
      * This _should_ only be called via [`quoteClaimMaxGas()`](#quoteclaimmaxgas).
      */
     function quoteClaimMaxGasWithRevert() external payable;
-
-    /***************************************
-    RECEIVE FUNCTIONS
-    ***************************************/
-
-    /**
-     * @notice Allows this contract to receive the gas token.
-     */
-    receive() external payable;
 }

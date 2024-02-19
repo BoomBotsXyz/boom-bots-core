@@ -3,7 +3,6 @@ pragma solidity 0.8.24;
 
 import { IMulticallModule } from "./../interfaces/modules/IMulticallModule.sol";
 import { Calls } from  "./../libraries/Calls.sol";
-import { Errors } from  "./../libraries/Errors.sol";
 import { ERC2535Library } from  "./../libraries/modules/ERC2535Library.sol";
 
 

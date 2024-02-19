@@ -5,6 +5,7 @@ import { Multicall } from "./Multicall.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IBalanceFetcher } from "./../interfaces/utils/IBalanceFetcher.sol";
 import { Blastable } from "./Blastable.sol";
+import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 
 
 /**
@@ -12,14 +13,20 @@ import { Blastable } from "./Blastable.sol";
  * @author Blue Matter Technologies
  * @notice The BalanceFetcher is a purely utility contract that helps offchain components efficiently fetch an account's balance of tokens.
  */
-contract BalanceFetcher is IBalanceFetcher, Blastable, Multicall {
+contract BalanceFetcher is IBalanceFetcher, Blastable, Ownable2Step, Multicall {
 
     /**
      * @notice Constructs the BalanceFetcher contract.
-     * @param _owner The owner of the contract.
+     * @param owner_ The owner of the contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
      */
-    constructor(address _owner) {
-        _transferOwnership(_owner);
+    constructor(
+        address owner_,
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) {
+        _transferOwnership(owner_);
     }
 
     /**

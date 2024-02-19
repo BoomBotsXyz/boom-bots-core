@@ -9,6 +9,7 @@ import { Errors } from "./../libraries/Errors.sol";
 import { IERC6551Registry } from "./../interfaces/erc6551/IERC6551Registry.sol";
 import { IBoomBots } from "./../interfaces/tokens/IBoomBots.sol";
 import { Blastable } from "./../utils/Blastable.sol";
+import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 
 
 /**
@@ -26,7 +27,7 @@ import { Blastable } from "./../utils/Blastable.sol";
  *
  * BoomBots are ERC721s with the enumerable extension. Additional information about each bot can be queried via [`getBotInfo()`](#getbotinfo) and [`exists()`](#exists).
  */
-contract BoomBots is IBoomBots, ERC721Enumerable, Blastable, Multicall {
+contract BoomBots is IBoomBots, ERC721Enumerable, Blastable, Ownable2Step, Multicall {
 
     mapping(address => bool) internal _factoryIsWhitelisted;
 
@@ -44,14 +45,20 @@ contract BoomBots is IBoomBots, ERC721Enumerable, Blastable, Multicall {
     string internal _tokenURIbase;
     string internal _contractURI;
 
+
     /**
-     * @notice Constructs the BoomBots contract.
-     * @param owner_ The contract owner.
+     * @notice Constructs the BoomBots nft contract.
+     * @param owner_ The owner of the contract.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
+     * @param erc6551Registry_ The address of the ERC6551Registry.
      */
     constructor(
-        address erc6551Registry_,
-        address owner_
-    ) ERC721("BOOM! Bot Ownership Tokens", "BBOT") {
+        address owner_,
+        address blast_,
+        address governor_,
+        address erc6551Registry_
+    ) Blastable(blast_, governor_) ERC721("BOOM! Bot Ownership Tokens", "BBOT") {
         _transferOwnership(owner_);
         _erc6551Registry = erc6551Registry_;
     }

@@ -18,7 +18,7 @@ interface IRingProtocolModuleA {
     /**
      * @notice Executes trades in Ring Protocol.
      * Will trade eth for usdc, usdt, dai, bolt, and rgb.
-     * Can only be called by the contract owner.
+     * Can only be called by the TBA owner.
      * @param ethAmount The amount of eth to input in whole. Will be split across multiple trades.
      */
     function executeRingProtocolModuleA(uint256 ethAmount) external payable;

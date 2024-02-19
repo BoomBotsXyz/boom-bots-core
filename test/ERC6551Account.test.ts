@@ -8,7 +8,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 const { expect } = chai;
 
-import { IERC6551Registry, ERC6551Account, MockERC20, MockERC721 } from "./../typechain-types";
+import { IERC6551Registry, ERC6551Account, MockERC20, MockERC721, GasCollector } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -21,6 +21,7 @@ const { AddressZero, WeiPerEther, MaxUint256, Zero } = ethers.constants;
 const WeiPerUsdc = BN.from(1_000_000); // 6 decimals
 
 const ERC6551_REGISTRY_ADDRESS = "0x000000006551c19487814612e58FE06813775758";
+const BLAST_ADDRESS            = "0x4300000000000000000000000000000000000002";
 
 const MAGIC_VALUE_0 = "0x00000000";
 const MAGIC_VALUE_IS_VALID_SIGNER = "0x523e3260";
@@ -34,6 +35,7 @@ describe("ERC6551Account", function () {
   let user4: SignerWithAddress;
   let user5: SignerWithAddress;
 
+  let gasCollector: GasCollector;
   let erc6551Registry: IERC6551Registry;
   let erc721TBA: MockERC721; // the erc721 that may have token bound accounts
   let erc721Asset: MockERC721; // an erc721 that token bound accounts may hold
@@ -89,6 +91,12 @@ describe("ERC6551Account", function () {
   });
 
   describe("setup", function () {
+    it("can deploy gas collector", async function () {
+      gasCollector = await deployContract(deployer, "GasCollector", [owner.address, BLAST_ADDRESS]);
+      await expectDeployed(gasCollector.address);
+      expect(await gasCollector.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy GasCollector", gasCollector.deployTransaction);
+    })
     //it("can read from registry", async function () {});
     it("can deploy ERC721", async function () {
       erc721TBA = await deployContract(deployer, "MockERC721", ["HolderERC721", "HODL"]) as MockERC721;

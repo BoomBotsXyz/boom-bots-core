@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast, ContractFactory } from "./../typechain-types";
+import { BalanceFetcher, MockERC20, MockGasBurner, MockGasBurner2, IBlast, MockBlast, ContractFactory, GasCollector } from "./../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../scripts/utils/setStorage";
@@ -47,6 +47,7 @@ describe("ContractFactory", function () {
   let networkSettings: any;
   let snapshot: BN;
 
+  let gasCollector: GasCollector;
   let balanceFetcher: BalanceFetcher;
   let gasBurner: MockGasBurner; // inherits blastable
   let gasBurner2: MockGasBurner2; // inherits blastable
@@ -72,8 +73,14 @@ describe("ContractFactory", function () {
   });
 
   describe("ContractFactory deployment", function () {
+    it("can deploy gas collector", async function () {
+      gasCollector = await deployContract(deployer, "GasCollector", [owner.address, BLAST_ADDRESS]);
+      await expectDeployed(gasCollector.address);
+      expect(await gasCollector.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy GasCollector", gasCollector.deployTransaction);
+    })
     it("should deploy factory successfully", async function () {
-      contractFactory = await deployContract(deployer, "ContractFactory", [owner.address]) as ContractFactory;
+      contractFactory = await deployContract(deployer, "ContractFactory", [owner.address, BLAST_ADDRESS, gasCollector.address]) as ContractFactory;
       await expectDeployed(contractFactory.address);
     });
   });

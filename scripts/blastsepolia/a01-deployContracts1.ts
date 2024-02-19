@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, ModulePack101, BoomBotsFactory01, BoomBotsFactory02, DataStore, IBlast, MockBlastableAccount, ContractFactory,  } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack100, ModulePack101, BoomBotsFactory01, BoomBotsFactory02, DataStore, IBlast, MockBlastableAccount, ContractFactory, GasCollector } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -27,16 +27,24 @@ let chainID: number;
 const ERC6551_REGISTRY_ADDRESS        = "0x000000006551c19487814612e58FE06813775758";
 const BLAST_ADDRESS                   = "0x4300000000000000000000000000000000000002";
 
+//const GAS_COLLECTOR_ADDRESS           = "0xDb83331A22b03E9E6E2C61dECcB0C71F35fe8424"; // V0.1.2
+const GAS_COLLECTOR_ADDRESS           = "0xc2bD0a189632A8b9eEb546D5398088659D62BABA"; // V0.1.2
+
 const CONTRACT_FACTORY_ADDRESS        = "0xa43C26F8cbD9Ea70e7B0C45e17Af81B6330AC543"; // v0.1.1
 
 const BOOM_BOTS_NFT_ADDRESS           = "0xB3856D22fE476892Af3Cc6dee3D84F015AD5F5b1"; // v0.1.1
 const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x152d3Ba1f7ac4a0AD0ec485b6A292B1F92aB8876"; // v0.1.1
 const MODULE_PACK_100_ADDRESS         = "0x044CA8B45C270E744BDaE436E7FA861c6de6b5A5"; // v0.1.0
 const MODULE_PACK_101_ADDRESS         = "0x0ea0b9aF8dD6D2C294281E7a983909BA81Bbb199"; // v0.1.1
-const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
+
+//const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
+//const DATA_STORE_ADDRESS              = "0x97D3cA0d406202DA7506F8e14006E7f9C1651dc2"; // v0.1.2
+const DATA_STORE_ADDRESS              = "0xD105250218C6aD8A7D79498161ba45509464EAbC"; // v0.1.2
+
 const BOOM_BOTS_FACTORY01_ADDRESS     = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
 const BOOM_BOTS_FACTORY02_ADDRESS     = "0xf57E8cCFD2a415aEc9319E5bc1ABD19aAF130bA1"; // v0.1.1
 
+let gasCollector: GasCollector;
 let boomBotsNft: BoomBots;
 let accountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
 //let mockAccountImplementation: MockBlastableAccount; // a mock to test gas
@@ -62,6 +70,7 @@ async function main() {
 
   iblast = await ethers.getContractAt("IBlast", BLAST_ADDRESS, boombotseth) as IBlast;
 
+  await deployGasCollector();
   await deployContractFactory();
   await deployBoomBotsNft();
   await deployBoomBotAccount();
@@ -70,6 +79,19 @@ async function main() {
   await deployDataStore();
   await deployBoomBotsFactory01();
   await deployBoomBotsFactory02();
+}
+
+async function deployGasCollector() {
+  if(await isDeployed(GAS_COLLECTOR_ADDRESS)) {
+    gasCollector = await ethers.getContractAt("GasCollector", GAS_COLLECTOR_ADDRESS, boombotsdeployer) as GasCollector;
+  } else {
+    console.log("Deploying GasCollector");
+    let args = [boombotsdeployer.address, BLAST_ADDRESS];
+    gasCollector = await deployContractUsingContractFactory(boombotsdeployer, "GasCollector", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as GasCollector;
+    console.log(`Deployed GasCollector to ${gasCollector.address}`);
+    if(chainID != 31337) await verifyContract(gasCollector.address, args);
+    if(!!GAS_COLLECTOR_ADDRESS && gasCollector.address != GAS_COLLECTOR_ADDRESS) throw new Error(`Deployed GasCollector to ${gasCollector.address}, expected ${GAS_COLLECTOR_ADDRESS}`)
+  }
 }
 
 async function deployContractFactory() {
@@ -142,7 +164,7 @@ async function deployDataStore() {
     dataStore = await ethers.getContractAt("DataStore", DATA_STORE_ADDRESS, boombotsdeployer) as DataStore;
   } else {
     console.log("Deploying DataStore");
-    let args = [boombotsdeployer.address];
+    let args = [boombotsdeployer.address, BLAST_ADDRESS, gasCollector.address];
     dataStore = await deployContractUsingContractFactory(boombotsdeployer, "DataStore", args, toBytes32(1), undefined, {...networkSettings.overrides, gasLimit: 10_000_000}, networkSettings.confirmations) as DataStore;
     console.log(`Deployed DataStore to ${dataStore.address}`);
     if(chainID != 31337) await verifyContract(dataStore.address, args);

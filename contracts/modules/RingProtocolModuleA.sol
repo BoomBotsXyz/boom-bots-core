@@ -48,7 +48,7 @@ contract RingProtocolModuleA is IRingProtocolModuleA {
     /**
      * @notice Executes trades in Ring Protocol.
      * Will trade eth for usdc, usdt, dai, bolt, and rgb.
-     * Can only be called by the contract owner.
+     * Can only be called by the TBA owner.
      * @param ethAmount The amount of eth to input.
      */
     function executeRingProtocolModuleA(uint256 ethAmount) external payable override {
