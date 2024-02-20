@@ -35,12 +35,8 @@ const MODULE_PACK_102_ADDRESS         = "0xfEC2e1F3c66f181650641eC50a5E131C1f3b4
 const DATA_STORE_ADDRESS              = "0xDFF8DCD5441B1B709cDCB7897dB304041Cc9DE4C"; // v0.1.2
 const BOOM_BOTS_FACTORY01_ADDRESS     = "0x92e795B8D78eA13a564da4F4E03965FBB89cb788"; // v0.1.2
 const BOOM_BOTS_FACTORY02_ADDRESS     = "0x4acb9D0243dF085B4F59683cee2F36597334bDa4"; // v0.1.2
-
 const BALANCE_FETCHER_ADDRESS         = "0x0268efA44785909AAb150Ff00545568351dd25b6"; // v0.1.2
 const PRE_BOOM_ADDRESS                = "0xdBa6Cb5a91AE6F0ac3883F3841190c2BFa168f9b"; // v0.1.2
-
-const MOCK_USDB_ADDRESS               = "0x3114ded1fA1b406e270A65a21bC96E86C171a244"; // v0.1.1
-
 const RING_PROTOCOL_MODULE_B_ADDRESS  = "0x141268a519D42149c6dcA9695d065d91eda66501"; // v0.1.2
 
 let iblast: IBlast;
@@ -56,7 +52,6 @@ let factory02: BoomBotsFactory02;
 
 let balanceFetcher: BalanceFetcher;
 let preboom: PreBOOM;
-let mockusdb: MockERC20Rebasing;
 
 let ringProtocolModuleB: RingProtocolModuleB;
 
@@ -87,7 +82,6 @@ async function main() {
 
   await deployBalanceFetcher();
   await deployPreBOOM();
-  await deployMockUSDB();
   await deployRingProtocolModuleB();
 
   logAddresses()
@@ -223,24 +217,6 @@ async function deployPreBOOM() {
   }
 }
 
-async function deployMockUSDB() {
-  if(await isDeployed(MOCK_USDB_ADDRESS)) {
-    mockusdb = await ethers.getContractAt("MockERC20Rebasing", MOCK_USDB_ADDRESS, boombotsdeployer) as MockERC20Rebasing;
-  } else {
-    console.log("Deploying MockUSDB");
-    let args = [
-      'Mock Rebasing USDB',
-      'mUSDB',
-      18,
-      500
-    ];
-    mockusdb = await deployContractUsingContractFactory(boombotsdeployer, "MockERC20Rebasing", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as MockERC20Rebasing;
-    console.log(`Deployed MockUSDB to ${mockusdb.address}`);
-    if(chainID != 31337) await verifyContract(mockusdb.address, args);
-    if(!!MOCK_USDB_ADDRESS && mockusdb.address != MOCK_USDB_ADDRESS) throw new Error(`Deployed MockUSDB to ${mockusdb.address}, expected ${MOCK_USDB_ADDRESS}`)
-  }
-}
-
 async function deployRingProtocolModuleB() {
   if(await isDeployed(RING_PROTOCOL_MODULE_B_ADDRESS)) {
     ringProtocolModuleB = await ethers.getContractAt("RingProtocolModuleB", RING_PROTOCOL_MODULE_B_ADDRESS, boombotsdeployer) as RingProtocolModuleB;
@@ -259,7 +235,7 @@ function logAddresses() {
   console.log("");
   console.log("| Contract Name                | Address                                      |");
   console.log("|------------------------------|----------------------------------------------|");
-  logContractAddress("ERC6551Registry", ERC6551Registry);
+  logContractAddress("ERC6551Registry", ERC6551_REGISTRY_ADDRESS);
   logContractAddress("ContractFactory", contractFactory.address);
   logContractAddress("GasCollector", gasCollector.address);
   logContractAddress("BoomBotsNFT", boomBotsNft.address);
@@ -270,7 +246,6 @@ function logAddresses() {
   logContractAddress("Factory02", factory02.address);
   logContractAddress("BalanceFetcher", balanceFetcher.address);
   logContractAddress("PreBOOM", preboom.address);
-  logContractAddress("MockUSDB", mockusdb.address);
   logContractAddress("RingProtocolModuleB", ringProtocolModuleB.address);
 }
 

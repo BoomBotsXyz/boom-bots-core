@@ -56,7 +56,6 @@ const DAI_ADDRESS                = "0x9C6Fc5bF860A4a012C9De812002dB304AD04F581";
 const BOLT_ADDRESS               = "0x1B0cC80F4E2A7d205518A1Bf36de5bED686662FE";
 const RGB_ADDRESS                = "0x7647a41596c1Ca0127BaCaa25205b310A0436B4C";
 const PRE_BOOM_ADDRESS           = "0xdBa6Cb5a91AE6F0ac3883F3841190c2BFa168f9b"; // v0.1.2
-const MOCK_USDB_ADDRESS          = "0x3114ded1fA1b406e270A65a21bC96E86C171a244";
 
 const TOKEN_LIST = [
   ETH_ADDRESS,
@@ -70,7 +69,6 @@ const TOKEN_LIST = [
   DAI_ADDRESS,
   BOLT_ADDRESS,
   RGB_ADDRESS,
-  MOCK_USDB_ADDRESS,
 ]
 
 let boomBotsNft: BoomBots;
@@ -211,18 +209,6 @@ async function useBot35_7() {
   //console.log(tx)
   await tx.wait(networkSettings.confirmations)
   console.log("Used bot 35_7")
-}
-
-// mints usdb to the bot
-async function mintUSDB() {
-  console.log("Minting MockUSDB")
-  let mockusdb = await ethers.getContractAt("MockERC20", MOCK_USDB_ADDRESS) as MockERC20;
-  let calldata = mockusdb.interface.encodeFunctionData("mint", [botAddress35, WeiPerEther.mul(1000)])
-  let tx = await accountProxy6.connect(botowner).execute(MOCK_USDB_ADDRESS, 0, calldata, 0, {...networkSettings.overrides, gasLimit:1_000_000})
-  console.log('tx')
-  console.log(tx)
-  await tx.wait(networkSettings.confirmations)
-  console.log("Minted MockUSDB")
 }
 
 main()

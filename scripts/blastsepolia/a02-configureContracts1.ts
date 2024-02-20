@@ -37,12 +37,7 @@ const MODULE_PACK_102_ADDRESS         = "0xfEC2e1F3c66f181650641eC50a5E131C1f3b4
 const DATA_STORE_ADDRESS              = "0xDFF8DCD5441B1B709cDCB7897dB304041Cc9DE4C"; // v0.1.2
 const BOOM_BOTS_FACTORY01_ADDRESS     = "0x92e795B8D78eA13a564da4F4E03965FBB89cb788"; // v0.1.2
 const BOOM_BOTS_FACTORY02_ADDRESS     = "0x4acb9D0243dF085B4F59683cee2F36597334bDa4"; // v0.1.2
-
 const BALANCE_FETCHER_ADDRESS         = "0x0268efA44785909AAb150Ff00545568351dd25b6"; // v0.1.2
-//const PRE_BOOM_ADDRESS                = "0xdBa6Cb5a91AE6F0ac3883F3841190c2BFa168f9b"; // v0.1.2
-
-//const MOCK_USDB_ADDRESS               = "0x3114ded1fA1b406e270A65a21bC96E86C171a244"; // v0.1.1
-
 const RING_PROTOCOL_MODULE_B_ADDRESS  = "0x141268a519D42149c6dcA9695d065d91eda66501"; // v0.1.2
 
 const ETH_ADDRESS                = "0x0000000000000000000000000000000000000000";
@@ -56,7 +51,6 @@ const DAI_ADDRESS                = "0x9C6Fc5bF860A4a012C9De812002dB304AD04F581";
 const BOLT_ADDRESS               = "0x1B0cC80F4E2A7d205518A1Bf36de5bED686662FE";
 const RGB_ADDRESS                = "0x7647a41596c1Ca0127BaCaa25205b310A0436B4C";
 const PRE_BOOM_ADDRESS           = "0xdBa6Cb5a91AE6F0ac3883F3841190c2BFa168f9b"; // v0.1.2
-const MOCK_USDB_ADDRESS          = "0x3114ded1fA1b406e270A65a21bC96E86C171a244";
 
 let iblast: IBlast;
 let gasCollector: GasCollector;
@@ -69,7 +63,6 @@ let factory01: BoomBotsFactory01;
 let factory02: BoomBotsFactory02;
 
 let usdb: MockERC20;
-let mockusdb: MockERC20Rebasing;
 let preboom: PreBOOM;
 
 let ringProtocolModuleB: RingProtocolModuleB;
@@ -97,7 +90,6 @@ async function main() {
   factory02 = await ethers.getContractAt("BoomBotsFactory02", BOOM_BOTS_FACTORY02_ADDRESS, boombotsdeployer) as BoomBotsFactory02;
 
   usdb = await ethers.getContractAt("MockERC20", USDB_ADDRESS, boombotsdeployer) as MockERC20;
-  mockusdb = await ethers.getContractAt("MockERC20Rebasing", MOCK_USDB_ADDRESS, boombotsdeployer) as MockERC20Rebasing;
   preboom = await ethers.getContractAt("PreBOOM", PRE_BOOM_ADDRESS, boombotsdeployer) as PreBOOM;
 
   //await configureContractFactoryGasGovernor();
@@ -414,15 +406,6 @@ async function transferFundsToFactory02() {
     console.log(`Transferred ETH to factory02`)
   }
 
-  var bal = await mockusdb.balanceOf(factory02.address)
-  if(bal.eq(0)) {
-    console.log(`Transferring MockUSDB to factory02`)
-    //let tx2 = await mockusdb.connect(boombotseth).transfer(factory02.address, WeiPerEther.mul(100_000), networkSettings.overrides)
-    let tx2 = await mockusdb.connect(boombotseth).mint(factory02.address, WeiPerEther.mul(100_000), networkSettings.overrides)
-    await tx2.wait(networkSettings.confirmations)
-    console.log(`Transferred MockUSDB to factory02`)
-  }
-
   var bal = await preboom.balanceOf(factory02.address)
   if(bal.eq(0)) {
     console.log(`Minting PreBOOM to factory02`)
@@ -434,7 +417,7 @@ async function transferFundsToFactory02() {
   var bal = await usdb.balanceOf(factory02.address)
   if(bal.eq(0)) {
     console.log(`Transferring USDB to factory02`)
-    //let tx2 = await mockusdb.connect(boombotseth).transfer(factory02.address, WeiPerEther.mul(100_000), networkSettings.overrides)
+    //let tx2 = await usdb.connect(boombotseth).transfer(factory02.address, WeiPerEther.mul(100_000), networkSettings.overrides)
     let tx2 = await usdb.connect(boombotseth).transfer(factory02.address, WeiPerEther.mul(100_000), networkSettings.overrides)
     await tx2.wait(networkSettings.confirmations)
     console.log(`Transferred USDB to factory02`)
