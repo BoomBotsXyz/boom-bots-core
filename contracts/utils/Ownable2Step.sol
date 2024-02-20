@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IOwnable2Step } from "./../interfaces/utils/IOwnable2Step.sol";
+import { Calls } from "./../libraries/Calls.sol";
 import { Errors } from "./../libraries/Errors.sol";
 
 
@@ -9,6 +12,10 @@ import { Errors } from "./../libraries/Errors.sol";
  * @title Ownable2Step
  * @author Blue Matter Technologies
  * @notice An abstract contract that provides a basic access control system through ERC173.
+ *
+ * Based on OpenZeppelins's implementation.
+ *
+ * Also includes [`sweep()`](#sweep) to allow the owner to rescue any tokens that may have been sent in.
  */
 abstract contract Ownable2Step is IOwnable2Step {
 
@@ -58,7 +65,7 @@ abstract contract Ownable2Step is IOwnable2Step {
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby disabling any functionality that is only available to the owner.
      */
-    function renounceOwnership() public override onlyOwner {
+    function renounceOwnership() public payable override onlyOwner {
         _transferOwnership(address(0));
     }
 
@@ -67,7 +74,7 @@ abstract contract Ownable2Step is IOwnable2Step {
      * Can only be called by the current owner.
      * @param newOwner The address of the new owner.
      */
-    function transferOwnership(address newOwner) public override onlyOwner {
+    function transferOwnership(address newOwner) public payable override onlyOwner {
         _pendingOwner = newOwner;
         emit OwnershipTransferStarted(_owner, newOwner);
     }
@@ -76,10 +83,33 @@ abstract contract Ownable2Step is IOwnable2Step {
      * @notice Completes the ownership transfer of the contract to the new account.
      * Can only be called by the pending owner.
      */
-    function acceptOwnership() public override {
+    function acceptOwnership() public payable override {
         address sender = msg.sender;
         if(_pendingOwner != sender) revert Errors.NotPendingContractOwner();
         _transferOwnership(sender);
+    }
+
+    /***************************************
+    TOKEN BALANCE FUNCTIONS
+    ***************************************/
+
+    /**
+     * @notice Rescues tokens that may have been accidentally transferred in.
+     * Can only be called by the contract owner.
+     * @dev If the inheriting contract requires tokens in the contract, overwrite this with a revert.
+     * @param receiver The receiver of the rescued tokens.
+     * @param tokens The tokens to rescue. Can be ETH or ERC20s.
+     */
+    function sweep(address receiver, address[] calldata tokens) external payable virtual override onlyOwner {
+        for(uint256 i = 0; i < tokens.length; ++i) {
+            address token = tokens[i];
+            if(token == address(0)) {
+                Calls.sendValue(payable(receiver), address(this).balance);
+            } else {
+                IERC20 tkn = IERC20(token);
+                SafeERC20.safeTransfer(tkn, receiver, tkn.balanceOf(address(this)));
+            }
+        }
     }
 
     /***************************************

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IDataStoreModule } from "./../interfaces/modules/IDataStoreModule.sol";
 import { DataStoreLibrary } from "./../libraries/modules/DataStoreLibrary.sol";

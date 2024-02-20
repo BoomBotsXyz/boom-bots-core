@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { ERC721Holder } from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { Multicall } from "./../utils/Multicall.sol";
 import { Calls } from "./../libraries/Calls.sol";
 import { Errors } from "./../libraries/Errors.sol";
 import { IERC6551Account } from "./../interfaces/accounts/IERC6551Account.sol";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 
 /**
@@ -83,7 +83,7 @@ interface IDataStore {
      * Can only be called by the contract owner.
      * @param params The list of names and addresses to set.
      */
-    function setNamedAddresses(SetNamedAddressParam[] memory params) external;
+    function setNamedAddresses(SetNamedAddressParam[] memory params) external payable;
 
     /***************************************
     MODULE WHITELIST FUNCTIONS
@@ -115,7 +115,7 @@ interface IDataStore {
      * Can only be called by the contract owner.
      * @param params The list of modules and if they should be whitelisted or blacklisted.
      */
-    function setModuleWhitelist(SetModuleWhitelistParam[] memory params) external;
+    function setModuleWhitelist(SetModuleWhitelistParam[] memory params) external payable;
 
     /***************************************
     SWAP FEE FUNCTIONS
@@ -169,7 +169,7 @@ interface IDataStore {
      * Can only be called by the contract owner.
      * @param params tokenIn, tokenOut, fee, receiver.
      */
-    function setSwapFees(SetSwapFeeParam[] calldata params) external;
+    function setSwapFees(SetSwapFeeParam[] calldata params) external payable;
 
     /***************************************
     FLASH LOAN FEE FUNCTIONS
@@ -214,5 +214,5 @@ interface IDataStore {
      * Can only be called by the contract owner.
      * @param params token, fee, receiver.
      */
-    function setFlashLoanFees(SetFlashLoanFeeParam[] calldata params) external;
+    function setFlashLoanFees(SetFlashLoanFeeParam[] calldata params) external payable;
 }

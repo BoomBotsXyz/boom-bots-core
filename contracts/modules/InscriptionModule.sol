@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { IInscriptionModule } from "./../interfaces/modules/IInscriptionModule.sol";
 
@@ -21,10 +21,10 @@ contract InscriptionModule is IInscriptionModule {
      * @notice Inscribe a message onto this bot.
      * The message is in the calldata.
      */
-    fallback () external payable override {}
+    fallback () external payable virtual override {}
 
     /**
      * @notice Allows this contract to receive the gas token.
      */
-    receive () external payable override {}
+    receive () external payable virtual override {}
 }

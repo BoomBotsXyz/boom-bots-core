@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { Errors } from "./Errors.sol";
 
@@ -129,5 +129,21 @@ library Calls {
                 revert Errors.DelegateCallFailed();
             }
         }
+    }
+
+    /**
+     * @notice Verify that an address has contract code, otherwise reverts.
+     * @param target The address to verify.
+     */
+    function verifyHasCode(
+        address target
+    ) internal view {
+        // checks
+        uint256 contractSize;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            contractSize := extcodesize(target)
+        }
+        if(contractSize == 0) revert Errors.NotAContract();
     }
 }

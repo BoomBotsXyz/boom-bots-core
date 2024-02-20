@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { Errors } from "./../Errors.sol";
 
@@ -68,7 +68,7 @@ library ERC165Library {
     function updateSupportedInterfaces(bytes4[] calldata interfaceIDs, bool[] calldata support) internal {
         if(interfaceIDs.length != support.length) revert Errors.LengthMismatch();
         ERC165LibraryStorage storage erc165ls = erc165LibraryStorage();
-        for(uint256 i; i < interfaceIDs.length; ) {
+        for(uint256 i = 0; i < interfaceIDs.length; ) {
             bytes4 interfaceID = interfaceIDs[i];
             bool supported = support[i];
             erc165ls.supportedInterfaces[interfaceID] = supported;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { ERC2535Module } from "./ERC2535Module.sol";
 import { ERC6551AccountModule } from "./ERC6551AccountModule.sol";

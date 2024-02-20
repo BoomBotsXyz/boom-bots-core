@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 
 /**
@@ -45,18 +45,31 @@ interface IOwnable2Step {
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby disabling any functionality that is only available to the owner.
      */
-    function renounceOwnership() external;
+    function renounceOwnership() external payable;
 
     /**
      * @notice Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one.
      * Can only be called by the current owner.
      * @param newOwner The address of the new owner.
      */
-    function transferOwnership(address newOwner) external;
+    function transferOwnership(address newOwner) external payable;
 
     /**
      * @notice Completes the ownership transfer of the contract to the new account.
      * Can only be called by the pending owner.
      */
-    function acceptOwnership() external;
+    function acceptOwnership() external payable;
+
+    /***************************************
+    TOKEN BALANCE FUNCTIONS
+    ***************************************/
+
+    /**
+     * @notice Rescues tokens that may have been accidentally transferred in.
+     * Can only be called by the contract owner.
+     * @dev If the inheriting contract requires tokens in the contract, overwrite this with a revert.
+     * @param receiver The receiver of the rescued tokens.
+     * @param tokens The tokens to rescue. Can be ETH or ERC20s.
+     */
+    function sweep(address receiver, address[] calldata tokens) external payable;
 }

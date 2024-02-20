@@ -9,7 +9,7 @@ import chai from "chai";
 const { expect, assert } = chai;
 import fs from "fs";
 
-import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, RingProtocolModuleA, BoomBotsFactory, MockERC20, MockERC721, MockERC1155, DataStore } from "./../../typechain-types";
+import { BoomBots, BoomBotAccount, ERC2535Module, ERC6551AccountModule, MulticallModule, ERC20HolderModule, ERC721HolderModule, FallbackModule, RevertModule, Test1Module, Test2Module, Test3Module, ModulePack100, RingProtocolModuleA, BoomBotsFactory01, MockERC20, MockERC721, MockERC1155, DataStore, GasCollector } from "./../../typechain-types";
 
 import { isDeployed, expectDeployed } from "./../../scripts/utils/expectDeployed";
 import { toBytes32 } from "./../../scripts/utils/setStorage";
@@ -24,6 +24,7 @@ const { AddressZero, WeiPerEther, MaxUint256, Zero } = ethers.constants;
 const WeiPerUsdc = BN.from(1_000_000); // 6 decimals
 
 const ERC6551_REGISTRY_ADDRESS = "0x000000006551c19487814612e58FE06813775758";
+const BLAST_ADDRESS            = "0x4300000000000000000000000000000000000002";
 
 const WETH_ADDRESS             = "0x4200000000000000000000000000000000000023";
 const USDC_ADDRESS             = "0xF19A5b56b419170Aa2ee49E5c9195F5902D39BF1";
@@ -56,6 +57,7 @@ describe("modules/RingProtocolModuleA", function () {
   let user4: SignerWithAddress;
   let user5: SignerWithAddress;
 
+  let gasCollector: GasCollector;
   let boomBotsNft: BoomBots;
   let boomBotAccountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
   let dataStore: DataStore;
@@ -71,7 +73,7 @@ describe("modules/RingProtocolModuleA", function () {
   let botInitializationCode1: any;
   let botInitializationCode2: any;
   // factory
-  let factory: BoomBotsFactory;
+  let factory: BoomBotsFactory01;
 
   let weth: MockERC20;
   let usdc: MockERC20;
@@ -116,8 +118,14 @@ describe("modules/RingProtocolModuleA", function () {
   });
 
   describe("setup", function () {
+    it("can deploy gas collector", async function () {
+      gasCollector = await deployContract(deployer, "GasCollector", [owner.address, BLAST_ADDRESS]);
+      await expectDeployed(gasCollector.address);
+      expect(await gasCollector.owner()).eq(owner.address);
+      l1DataFeeAnalyzer.register("deploy GasCollector", gasCollector.deployTransaction);
+    })
     it("can deploy BoomBots ERC721", async function () {
-      boomBotsNft = await deployContract(deployer, "BoomBots", [ERC6551_REGISTRY_ADDRESS, owner.address]) as BoomBots;
+      boomBotsNft = await deployContract(deployer, "BoomBots", [owner.address, BLAST_ADDRESS, gasCollector.address, ERC6551_REGISTRY_ADDRESS]) as BoomBots;
       await expectDeployed(boomBotsNft.address);
       expect(await boomBotsNft.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy Boombots", boomBotsNft.deployTransaction);
@@ -128,12 +136,12 @@ describe("modules/RingProtocolModuleA", function () {
       expect(await boomBotsNft.getERC6551Registry()).eq(ERC6551_REGISTRY_ADDRESS);
     });
     it("can deploy account implementations", async function () {
-      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount") as BoomBotAccount;
+      boomBotAccountImplementation = await deployContract(deployer, "BoomBotAccount", [BLAST_ADDRESS, deployer.address]) as BoomBotAccount;
       await expectDeployed(boomBotAccountImplementation.address);
       l1DataFeeAnalyzer.register("deploy BoomBotAccount impl", boomBotsNft.deployTransaction);
     });
     it("can deploy data store", async function () {
-      dataStore = await deployContract(deployer, "DataStore", [owner.address]);
+      dataStore = await deployContract(deployer, "DataStore", [owner.address, BLAST_ADDRESS, gasCollector.address]);
       await expectDeployed(dataStore.address);
       expect(await dataStore.owner()).eq(owner.address);
       l1DataFeeAnalyzer.register("deploy DataStore", dataStore.deployTransaction);
@@ -148,11 +156,11 @@ describe("modules/RingProtocolModuleA", function () {
       await expectDeployed(ringProtocolModuleA.address);
       l1DataFeeAnalyzer.register("deploy RingProtocolModuleA impl", ringProtocolModuleA.deployTransaction);
     });
-    it("can deploy BoomBotsFactory", async function () {
-      factory = await deployContract(deployer, "BoomBotsFactory", [owner.address, boomBotsNft.address, boomBotAccountImplementation.address, "0x", "0x"]) as BoomBotsFactory;
+    it("can deploy BoomBotsFactory01", async function () {
+      factory = await deployContract(deployer, "BoomBotsFactory01", [owner.address, BLAST_ADDRESS, gasCollector.address, boomBotsNft.address]) as BoomBotsFactory01;
       await expectDeployed(factory.address);
       expect(await factory.owner()).eq(owner.address);
-      l1DataFeeAnalyzer.register("deploy BoomBotsFactory", factory.deployTransaction);
+      l1DataFeeAnalyzer.register("deploy BoomBotsFactory01", factory.deployTransaction);
     });
   });
 
@@ -171,37 +179,42 @@ describe("modules/RingProtocolModuleA", function () {
         expect(await boomBotsNft.factoryIsWhitelisted(whitelistItem.factory)).eq(whitelistItem.shouldWhitelist);
       }
     });
-    it("owner can setBotInitializationCode", async function () {
+    it("owner can postBotCreationSettings", async function () {
       let sighashes = calcSighashes(modulePack100, 'ModulePack100')
       sighashes.push(inscribeSighash)
-      diamondCutInit = [
+      let diamondCut = [
         {
           facetAddress: modulePack100.address,
           action: FacetCutAction.Add,
           functionSelectors: sighashes,
         },
       ]
-
+      diamondCutInit = diamondCut
       let interfaceIDs = [
         "0x01ffc9a7", // ERC165
         "0x1f931c1c", // DiamondCut
         "0x48e2b093", // DiamondLoupe
         "0x6faff5f1", // ERC6551Account
         "0x51945447", // ERC6551Executable
-        //"",
       ]
-      let support = [
-        true,
-        true,
-        true,
-        true,
-        true,
-      ]
-
-      botInitializationCode1 = boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCutInit, dataStore.address]);
-      botInitializationCode2 = modulePack100.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]);
-      let tx = await factory.connect(owner).setBotInitializationCode(botInitializationCode1, botInitializationCode2);
-    });
+      let support = interfaceIDs.map(id=>true)
+      let params = {
+        botImplementation: boomBotAccountImplementation.address,
+        initializationCalls: [
+          boomBotAccountImplementation.interface.encodeFunctionData("initialize", [diamondCut, dataStore.address]),
+          modulePack100.interface.encodeFunctionData("updateSupportedInterfaces", [interfaceIDs, support]),
+        ],
+        isPaused: false
+      }
+      let tx = await factory.connect(owner).postBotCreationSettings(params)
+      expect(await factory.getBotCreationSettingsCount()).eq(1)
+      let res = await factory.getBotCreationSettings(1)
+      expect(res.botImplementation).eq(params.botImplementation)
+      expect(res.initializationCalls.length).eq(params.initializationCalls.length)
+      expect(res.isPaused).eq(params.isPaused)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPosted").withArgs(1)
+      await expect(tx).to.emit(factory, "BotCreationSettingsPaused").withArgs(1, params.isPaused)
+    })
     it("owner can whitelist modules", async function () {
       let modules = [
         {
@@ -224,12 +237,12 @@ describe("modules/RingProtocolModuleA", function () {
       let ts = await boomBotsNft.totalSupply();
       let bal = await boomBotsNft.balanceOf(user1.address);
       let botID = ts.add(1);
-      let botRes = await factory.connect(user1).callStatic['createBot()']();
+      let botRes = await factory.connect(user1).callStatic['createBot(uint256)'](1);
       expect(botRes.botID).eq(botID);
       expect(await boomBotsNft.exists(botID)).eq(false);
       let isDeployed1 = await isDeployed(botRes.botAddress)
       expect(isDeployed1).to.be.false;
-      let tx = await factory.connect(user1)['createBot()']();
+      let tx = await factory.connect(user1)['createBot(uint256)'](1);
       await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(AddressZero, factory.address, botRes.botID);
       await expect(tx).to.emit(boomBotsNft, "Transfer").withArgs(factory.address, user1.address, botRes.botID);
       expect(await boomBotsNft.totalSupply()).eq(ts.add(1));
@@ -287,6 +300,15 @@ describe("modules/RingProtocolModuleA", function () {
       // facets(), facetAddresses()
       let facets = await diamondAccount.facets();
       let facetAddresses = await diamondAccount.facetAddresses();
+      let sighashes = calcSighashes(boomBotAccountImplementation, 'BoomBotAccount')
+      diamondCutInit = [
+        {
+          facetAddress: diamondAccount.address,
+          action: FacetCutAction.Add,
+          functionSelectors: sighashes,
+        },
+        ...diamondCutInit
+      ]
       //console.log(facets)
       //console.log(facetAddresses)
       expect(facets.length).eq(diamondCutInit.length);

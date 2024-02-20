@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import { Calls } from "./../../libraries/Calls.sol";
 import { Errors } from "./../../libraries/Errors.sol";
@@ -26,6 +26,10 @@ contract SometimesRevertAccount {
     function selfSend() external payable {
         uint256 balance = address(this).balance;
         Calls.sendValue(address(this), balance);
+    }
+
+    function selfFunctionCall(bytes memory data) external payable {
+        Calls.functionCall(address(this), data);
     }
 
     function setRevertMode(uint256 mode) external payable {

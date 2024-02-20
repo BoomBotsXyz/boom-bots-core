@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: none
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Multicall } from "./Multicall.sol";
 import { Errors } from "./../libraries/Errors.sol";
-import { Calls } from "./../libraries/Calls.sol";
 import { IDataStore } from "./../interfaces/utils/IDataStore.sol";
-import { Blastable } from "./../utils/Blastable.sol";
+import { Blastable } from "./Blastable.sol";
+import { Ownable2Step } from "./../utils/Ownable2Step.sol";
 
 
 /**
@@ -27,7 +25,7 @@ import { Blastable } from "./../utils/Blastable.sol";
  *
  * The third is a store of fees. The protocol charges a fee on swaps and flash loans, which are then paid out as dividends. The fee percentage and receiver are stored here. The application of the fee is applied differently based on the type. Read the respective modules for more details.
  */
-contract DataStore is IDataStore, Multicall, Blastable {
+contract DataStore is IDataStore, Multicall, Blastable, Ownable2Step {
 
     /***************************************
     GLOBAL VARIABLES
@@ -73,10 +71,14 @@ contract DataStore is IDataStore, Multicall, Blastable {
     /**
      * @notice Constructs the DataStore contract.
      * @param owner_ The contract owner.
+     * @param blast_ The address of the blast gas reward contract.
+     * @param governor_ The address of the gas governor.
      */
     constructor(
-        address owner_
-    ) {
+        address owner_,
+        address blast_,
+        address governor_
+    ) Blastable(blast_, governor_) {
         _transferOwnership(owner_);
     }
 
@@ -139,8 +141,8 @@ contract DataStore is IDataStore, Multicall, Blastable {
      * Can only be called by the contract owner.
      * @param params The list of names and addresses to set.
      */
-    function setNamedAddresses(SetNamedAddressParam[] memory params) external override onlyOwner {
-        for(uint256 i; i < params.length; ) {
+    function setNamedAddresses(SetNamedAddressParam[] memory params) external payable override onlyOwner {
+        for(uint256 i = 0; i < params.length; ) {
             address addr = params[i].addr;
             if(addr == address(0)) revert Errors.AddressZero();
             string memory name = params[i].name;
@@ -187,8 +189,8 @@ contract DataStore is IDataStore, Multicall, Blastable {
      * Can only be called by the contract owner.
      * @param params The list of modules and if they should be whitelisted or blacklisted.
      */
-    function setModuleWhitelist(SetModuleWhitelistParam[] memory params) external override onlyOwner {
-        for(uint256 i; i < params.length; ) {
+    function setModuleWhitelist(SetModuleWhitelistParam[] memory params) external payable override onlyOwner {
+        for(uint256 i = 0; i < params.length; ) {
             address module = params[i].module;
             bool shouldWhitelist = params[i].shouldWhitelist;
             _moduleIsWhitelisted[module] = shouldWhitelist;
@@ -262,8 +264,8 @@ contract DataStore is IDataStore, Multicall, Blastable {
      * Can only be called by the contract owner.
      * @param params tokenIn, tokenOut, fee, receiver.
      */
-    function setSwapFees(SetSwapFeeParam[] calldata params) external override onlyOwner {
-        for(uint256 i; i < params.length; ) {
+    function setSwapFees(SetSwapFeeParam[] calldata params) external payable override onlyOwner {
+        for(uint256 i = 0; i < params.length; ) {
             uint256 swapType = params[i].swapType;
             address tokenIn = params[i].tokenIn;
             address tokenOut = params[i].tokenOut;
@@ -332,8 +334,8 @@ contract DataStore is IDataStore, Multicall, Blastable {
      * Can only be called by the contract owner.
      * @param params token, fee, receiver.
      */
-    function setFlashLoanFees(SetFlashLoanFeeParam[] calldata params) external override onlyOwner {
-        for(uint256 i; i < params.length; ) {
+    function setFlashLoanFees(SetFlashLoanFeeParam[] calldata params) external payable override onlyOwner {
+        for(uint256 i = 0; i < params.length; ) {
             address token = params[i].token;
             uint256 feePercent = params[i].feePercent;
             address feeReceiver = params[i].feeReceiver;

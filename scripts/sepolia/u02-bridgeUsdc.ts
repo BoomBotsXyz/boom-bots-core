@@ -29,7 +29,10 @@ let chainID: number;
 
 const fs = require("fs")
 
+const ABI_MULTICALL = JSON.parse(fs.readFileSync("data/abi/other/Multicall3.json").toString())
 const ABI_BRIDGE = JSON.parse(fs.readFileSync("data/abi/Blast/BlastBridge.json").toString())
+
+const MULTICALL_ADDRESS = "0xa5b8c45025dA78cF9D27D3263581841663E71A04" // on sepolia
 
 const USDB_ADDRESS   = "0x4200000000000000000000000000000000000022" // on blast sepolia
 const USDC_ADDRESS   = "0x7f11f79DEA8CE904ed0249a23930f2e59b43a385" // on sepolia
@@ -39,6 +42,7 @@ const BRIDGE_ADDRESS = "0xc644cc19d2A9388b71dd1dEde07cFFC73237Dca8" // usdb brid
 
 let usdc: MockERC20;
 let bridge: any;
+let multicallContract: any;
 
 async function main() {
   console.log(`Using ${boombotseth.address} as boombotseth`);
@@ -53,14 +57,23 @@ async function main() {
 
   usdc = await ethers.getContractAt("MockERC20", USDC_ADDRESS, boombotseth) as MockERC20;
   bridge = await ethers.getContractAt(ABI_BRIDGE, BRIDGE_ADDRESS, boombotseth);
+  multicallContract = await ethers.getContractAt(ABI_MULTICALL, MULTICALL_ADDRESS, boombotseth);
 
-  await mintTokens();
+  //await mintTokens();
   await bridgeTokens();
 }
 
 async function mintTokens() {
   console.log("Minting USDC")
-  let tx = await usdc.mint(boombotseth.address, WeiPerEther.mul(10_000), networkSettings.overrides)
+  //let tx = await usdc.mint(boombotseth.address, WeiPerEther.mul(10_000), networkSettings.overrides)
+  let call = {
+    target: USDC_ADDRESS,
+    callData: usdc.interface.encodeFunctionData("mint", [boombotseth.address, WeiPerEther.mul(10_000)]),
+  }
+  let iters = 100
+  let calls = []
+  for(let i = 0; i < iters; i++) calls.push(call)
+  let tx = await multicallContract.aggregate(calls, {...networkSettings.overrides, gasLimit: 60_000 + 25_000*iters})
   console.log('tx')
   console.log(tx)
   await tx.wait(networkSettings.confirmations)
@@ -72,7 +85,7 @@ async function bridgeTokens() {
   console.log("Bridging USDC")
 
   let balance = await usdc.balanceOf(boombotseth.address)
-  balance = balance.div(3)
+  //balance = balance.div(3)
   console.log(`Bridging ${formatUnits(balance)} USDC`)
   if(balance.eq(0)) throw new Error("need to mint first")
 
