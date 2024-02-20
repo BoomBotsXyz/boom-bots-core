@@ -9,7 +9,7 @@ const accounts = JSON.parse(process.env.ACCOUNTS || "{}");
 const boombotseth = new ethers.Wallet(accounts.boombotseth.key, provider);
 const boombotsdeployer = new ethers.Wallet(accounts.boombotsdeployer.key, provider);
 
-import { BoomBots, BoomBotAccount, ModulePack100, ModulePack101, BoomBotsFactory01, BoomBotsFactory02, DataStore, IBlast, MockBlastableAccount, ContractFactory, GasCollector } from "../../typechain-types";
+import { BoomBots, BoomBotAccount, ModulePack102, BoomBotsFactory01, BoomBotsFactory02, DataStore, IBlast, ContractFactory, GasCollector, RingProtocolModuleB, BalanceFetcher, MockERC20Rebasing, PreBOOM } from "../../typechain-types";
 
 import { delay } from "./../utils/misc";
 import { isDeployed, expectDeployed } from "./../utils/expectDeployed";
@@ -27,34 +27,39 @@ let chainID: number;
 const ERC6551_REGISTRY_ADDRESS        = "0x000000006551c19487814612e58FE06813775758";
 const BLAST_ADDRESS                   = "0x4300000000000000000000000000000000000002";
 
-//const GAS_COLLECTOR_ADDRESS           = "0xDb83331A22b03E9E6E2C61dECcB0C71F35fe8424"; // V0.1.2
-const GAS_COLLECTOR_ADDRESS           = "0xc2bD0a189632A8b9eEb546D5398088659D62BABA"; // V0.1.2
+const CONTRACT_FACTORY_ADDRESS        = "0xA74500382CAb2EBFe9A08dc2c01430821A4A8E15"; // v0.1.2
+const GAS_COLLECTOR_ADDRESS           = "0xf67f800486E8B9cC7e4416F329dF56bB43D2B7B4"; // V0.1.2
+const BOOM_BOTS_NFT_ADDRESS           = "0x7724cc10B42760d4C624d6b81C4367118194E39B"; // v0.1.2
+const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x8EA19CA269A3F3A7563F7A098C9C3dC46f4A2448"; // v0.1.2
+const MODULE_PACK_102_ADDRESS         = "0xfEC2e1F3c66f181650641eC50a5E131C1f3b4740"; // v0.1.2
+const DATA_STORE_ADDRESS              = "0xDFF8DCD5441B1B709cDCB7897dB304041Cc9DE4C"; // v0.1.2
+const BOOM_BOTS_FACTORY01_ADDRESS     = "0x92e795B8D78eA13a564da4F4E03965FBB89cb788"; // v0.1.2
+const BOOM_BOTS_FACTORY02_ADDRESS     = "0x4acb9D0243dF085B4F59683cee2F36597334bDa4"; // v0.1.2
 
-const CONTRACT_FACTORY_ADDRESS        = "0xa43C26F8cbD9Ea70e7B0C45e17Af81B6330AC543"; // v0.1.1
+const BALANCE_FETCHER_ADDRESS         = "0x0268efA44785909AAb150Ff00545568351dd25b6"; // v0.1.2
+const PRE_BOOM_ADDRESS                = "0xdBa6Cb5a91AE6F0ac3883F3841190c2BFa168f9b"; // v0.1.2
 
-const BOOM_BOTS_NFT_ADDRESS           = "0xB3856D22fE476892Af3Cc6dee3D84F015AD5F5b1"; // v0.1.1
-const ACCOUNT_IMPLEMENTATION_ADDRESS  = "0x152d3Ba1f7ac4a0AD0ec485b6A292B1F92aB8876"; // v0.1.1
-const MODULE_PACK_100_ADDRESS         = "0x044CA8B45C270E744BDaE436E7FA861c6de6b5A5"; // v0.1.0
-const MODULE_PACK_101_ADDRESS         = "0x0ea0b9aF8dD6D2C294281E7a983909BA81Bbb199"; // v0.1.1
+const MOCK_USDB_ADDRESS               = "0x3114ded1fA1b406e270A65a21bC96E86C171a244"; // v0.1.1
 
-//const DATA_STORE_ADDRESS              = "0x4092c948cE402c18c8Ad6342859dEe8bcAD932bC"; // v0.1.1
-//const DATA_STORE_ADDRESS              = "0x97D3cA0d406202DA7506F8e14006E7f9C1651dc2"; // v0.1.2
-const DATA_STORE_ADDRESS              = "0xD105250218C6aD8A7D79498161ba45509464EAbC"; // v0.1.2
+const RING_PROTOCOL_MODULE_B_ADDRESS  = "0x141268a519D42149c6dcA9695d065d91eda66501"; // v0.1.2
 
-const BOOM_BOTS_FACTORY01_ADDRESS     = "0x0B0eEBa9CC8035D8EB2516835E57716f0eAE7B73"; // v0.1.1
-const BOOM_BOTS_FACTORY02_ADDRESS     = "0xf57E8cCFD2a415aEc9319E5bc1ABD19aAF130bA1"; // v0.1.1
+let iblast: IBlast;
 
+let contractFactory: ContractFactory;
 let gasCollector: GasCollector;
 let boomBotsNft: BoomBots;
 let accountImplementation: BoomBotAccount; // the base implementation for boom bot accounts
-//let mockAccountImplementation: MockBlastableAccount; // a mock to test gas
-let modulePack100: ModulePack100;
-let modulePack101: ModulePack101;
+let modulePack102: ModulePack102;
 let dataStore: DataStore;
 let factory01: BoomBotsFactory01;
 let factory02: BoomBotsFactory02;
 
-let iblast: IBlast;
+let balanceFetcher: BalanceFetcher;
+let preboom: PreBOOM;
+let mockusdb: MockERC20Rebasing;
+
+let ringProtocolModuleB: RingProtocolModuleB;
+
 
 async function main() {
   console.log(`Using ${boombotseth.address} as boombotseth`);
@@ -70,15 +75,35 @@ async function main() {
 
   iblast = await ethers.getContractAt("IBlast", BLAST_ADDRESS, boombotseth) as IBlast;
 
-  await deployGasCollector();
   await deployContractFactory();
+
+  await deployGasCollector();
   await deployBoomBotsNft();
   await deployBoomBotAccount();
-  await deployModulePack100();
-  await deployModulePack101();
+  await deployModulePack102();
   await deployDataStore();
   await deployBoomBotsFactory01();
   await deployBoomBotsFactory02();
+
+  await deployBalanceFetcher();
+  await deployPreBOOM();
+  await deployMockUSDB();
+  await deployRingProtocolModuleB();
+
+  logAddresses()
+}
+
+async function deployContractFactory() {
+  if(await isDeployed(CONTRACT_FACTORY_ADDRESS)) {
+    contractFactory = await ethers.getContractAt("ContractFactory", CONTRACT_FACTORY_ADDRESS, boombotsdeployer) as ContractFactory;
+  } else {
+    console.log("Deploying ContractFactory");
+    let args = [boombotsdeployer.address, BLAST_ADDRESS, boombotsdeployer.address];
+    contractFactory = await deployContractUsingContractFactory(boombotsdeployer, "ContractFactory", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as ContractFactory;
+    console.log(`Deployed ContractFactory to ${contractFactory.address}`);
+    if(chainID != 31337) await verifyContract(contractFactory.address, args);
+    if(!!CONTRACT_FACTORY_ADDRESS && contractFactory.address != CONTRACT_FACTORY_ADDRESS) throw new Error(`Deployed ContractFactoryto ${contractFactory.address}, expected ${CONTRACT_FACTORY_ADDRESS}`)
+  }
 }
 
 async function deployGasCollector() {
@@ -94,25 +119,12 @@ async function deployGasCollector() {
   }
 }
 
-async function deployContractFactory() {
-  if(await isDeployed(CONTRACT_FACTORY_ADDRESS)) {
-
-  } else {
-    console.log("Deploying ContractFactory");
-    let args = [boombotsdeployer.address];
-    let contractFactory = await deployContractUsingContractFactory(boombotsdeployer, "ContractFactory", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBots;
-    console.log(`Deployed ContractFactory to ${contractFactory.address}`);
-    if(chainID != 31337) await verifyContract(contractFactory.address, args);
-    if(!!ContractFactory && contractFactory.address != ContractFactory) throw new Error(`Deployed ContractFactoryto ${contractFactory.address}, expected ${ContractFactory}`)
-  }
-}
-
 async function deployBoomBotsNft() {
   if(await isDeployed(BOOM_BOTS_NFT_ADDRESS)) {
     boomBotsNft = await ethers.getContractAt("BoomBots", BOOM_BOTS_NFT_ADDRESS, boombotsdeployer) as BoomBots;
   } else {
     console.log("Deploying BoomBots NFT");
-    let args = [ERC6551_REGISTRY_ADDRESS, boombotsdeployer.address];
+    let args = [boombotsdeployer.address, BLAST_ADDRESS, gasCollector.address, ERC6551_REGISTRY_ADDRESS];
     boomBotsNft = await deployContractUsingContractFactory(boombotsdeployer, "BoomBots", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBots;
     console.log(`Deployed BoomBots NFT to ${boomBotsNft.address}`);
     if(chainID != 31337) await verifyContract(boomBotsNft.address, args);
@@ -125,7 +137,7 @@ async function deployBoomBotAccount() {
     accountImplementation = await ethers.getContractAt("BoomBotAccount", ACCOUNT_IMPLEMENTATION_ADDRESS, boombotsdeployer) as BoomBotAccount;
   } else {
     console.log("Deploying BoomBotAccount");
-    let args = [boombotsdeployer.address];
+    let args = [BLAST_ADDRESS, gasCollector.address];
     accountImplementation = await deployContractUsingContractFactory(boombotsdeployer, "BoomBotAccount", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBotAccount;
     console.log(`Deployed BoomBotAccount to ${accountImplementation.address}`);
     if(chainID != 31337) await verifyContract(accountImplementation.address, args);
@@ -133,29 +145,16 @@ async function deployBoomBotAccount() {
   }
 }
 
-async function deployModulePack100() {
-  if(await isDeployed(MODULE_PACK_100_ADDRESS)) {
-    modulePack100 = await ethers.getContractAt("ModulePack100", MODULE_PACK_100_ADDRESS, boombotsdeployer) as ModulePack100;
+async function deployModulePack102() {
+  if(await isDeployed(MODULE_PACK_102_ADDRESS)) {
+    modulePack102 = await ethers.getContractAt("ModulePack102", MODULE_PACK_102_ADDRESS, boombotsdeployer) as ModulePack102;
   } else {
-    console.log("Deploying ModulePack100");
-    let args = [];
-    modulePack100 = await deployContractUsingContractFactory(boombotsdeployer, "ModulePack100", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as ModulePack100;
-    console.log(`Deployed ModulePack100 to ${modulePack100.address}`);
-    if(chainID != 31337) await verifyContract(modulePack100.address, args);
-    if(!!MODULE_PACK_100_ADDRESS && modulePack100.address != MODULE_PACK_100_ADDRESS) throw new Error(`Deployed ModulePack100 to ${modulePack100.address}, expected ${MODULE_PACK_100_ADDRESS}`)
-  }
-}
-
-async function deployModulePack101() {
-  if(await isDeployed(MODULE_PACK_101_ADDRESS)) {
-    modulePack101 = await ethers.getContractAt("ModulePack101", MODULE_PACK_101_ADDRESS, boombotsdeployer) as ModulePack101;
-  } else {
-    console.log("Deploying ModulePack101");
-    let args = [boombotsdeployer.address];
-    modulePack101 = await deployContractUsingContractFactory(boombotsdeployer, "ModulePack101", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as ModulePack101;
-    console.log(`Deployed ModulePack101 to ${modulePack101.address}`);
-    if(chainID != 31337) await verifyContract(modulePack101.address, args);
-    if(!!MODULE_PACK_101_ADDRESS && modulePack101.address != MODULE_PACK_101_ADDRESS) throw new Error(`Deployed ModulePack101 to ${modulePack101.address}, expected ${MODULE_PACK_101_ADDRESS}`)
+    console.log("Deploying ModulePack102");
+    let args = [BLAST_ADDRESS, gasCollector.address];
+    modulePack102 = await deployContractUsingContractFactory(boombotsdeployer, "ModulePack102", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as ModulePack102;
+    console.log(`Deployed ModulePack102 to ${modulePack102.address}`);
+    if(chainID != 31337) await verifyContract(modulePack102.address, args);
+    if(!!MODULE_PACK_102_ADDRESS && modulePack102.address != MODULE_PACK_102_ADDRESS) throw new Error(`Deployed ModulePack102 to ${modulePack102.address}, expected ${MODULE_PACK_102_ADDRESS}`)
   }
 }
 
@@ -177,10 +176,7 @@ async function deployBoomBotsFactory01() {
     factory01 = await ethers.getContractAt("BoomBotsFactory01", BOOM_BOTS_FACTORY01_ADDRESS, boombotsdeployer) as BoomBotsFactory01;
   } else {
     console.log("Deploying BoomBotsFactory01");
-    let args = [
-      boombotsdeployer.address,
-      boomBotsNft.address
-    ];
+    let args = [boombotsdeployer.address, BLAST_ADDRESS, gasCollector.address, boomBotsNft.address];
     factory01 = await deployContractUsingContractFactory(boombotsdeployer, "BoomBotsFactory01", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBotsFactory01;
     console.log(`Deployed BoomBotsFactory01 to ${factory01.address}`);
     if(chainID != 31337) await verifyContract(factory01.address, args);
@@ -193,15 +189,89 @@ async function deployBoomBotsFactory02() {
     factory02 = await ethers.getContractAt("BoomBotsFactory02", BOOM_BOTS_FACTORY02_ADDRESS, boombotsdeployer) as BoomBotsFactory02;
   } else {
     console.log("Deploying BoomBotsFactory02");
-    let args = [
-      boombotsdeployer.address,
-      boomBotsNft.address
-    ];
+    let args = [boombotsdeployer.address, BLAST_ADDRESS, gasCollector.address, boomBotsNft.address];
     factory02 = await deployContractUsingContractFactory(boombotsdeployer, "BoomBotsFactory02", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BoomBotsFactory02;
     console.log(`Deployed BoomBotsFactory02 to ${factory02.address}`);
     if(chainID != 31337) await verifyContract(factory02.address, args);
     if(!!BOOM_BOTS_FACTORY02_ADDRESS && factory02.address != BOOM_BOTS_FACTORY02_ADDRESS) throw new Error(`Deployed BoomBotsFactory02 to ${factory02.address}, expected ${BOOM_BOTS_FACTORY02_ADDRESS}`)
   }
+}
+
+async function deployBalanceFetcher() {
+  if(await isDeployed(BALANCE_FETCHER_ADDRESS)) {
+    balanceFetcher = await ethers.getContractAt("BalanceFetcher", BALANCE_FETCHER_ADDRESS, boombotsdeployer) as BalanceFetcher;
+  } else {
+    console.log("Deploying BalanceFetcher");
+    let args = [boombotsdeployer.address, BLAST_ADDRESS, GAS_COLLECTOR_ADDRESS];
+    balanceFetcher = await deployContractUsingContractFactory(boombotsdeployer, "BalanceFetcher", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as BalanceFetcher;
+    console.log(`Deployed BalanceFetcher to ${balanceFetcher.address}`);
+    if(chainID != 31337) await verifyContract(balanceFetcher.address, args);
+    if(!!BALANCE_FETCHER_ADDRESS && balanceFetcher.address != BALANCE_FETCHER_ADDRESS) throw new Error(`Deployed ModulePack100 to ${balanceFetcher.address}, expected ${BALANCE_FETCHER_ADDRESS}`)
+  }
+}
+
+async function deployPreBOOM() {
+  if(await isDeployed(PRE_BOOM_ADDRESS)) {
+    preboom = await ethers.getContractAt("PreBOOM", PRE_BOOM_ADDRESS, boombotsdeployer) as PreBOOM;
+  } else {
+    console.log("Deploying PreBOOM");
+    let args = [boombotsdeployer.address, BLAST_ADDRESS, GAS_COLLECTOR_ADDRESS];
+    preboom = await deployContractUsingContractFactory(boombotsdeployer, "PreBOOM", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as PreBOOM;
+    console.log(`Deployed PreBOOM to ${preboom.address}`);
+    if(chainID != 31337) await verifyContract(preboom.address, args);
+    if(!!PRE_BOOM_ADDRESS && preboom.address != PRE_BOOM_ADDRESS) throw new Error(`Deployed PreBOOM to ${preboom.address}, expected ${PRE_BOOM_ADDRESS}`)
+  }
+}
+
+async function deployMockUSDB() {
+  if(await isDeployed(MOCK_USDB_ADDRESS)) {
+    mockusdb = await ethers.getContractAt("MockERC20Rebasing", MOCK_USDB_ADDRESS, boombotsdeployer) as MockERC20Rebasing;
+  } else {
+    console.log("Deploying MockUSDB");
+    let args = [
+      'Mock Rebasing USDB',
+      'mUSDB',
+      18,
+      500
+    ];
+    mockusdb = await deployContractUsingContractFactory(boombotsdeployer, "MockERC20Rebasing", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as MockERC20Rebasing;
+    console.log(`Deployed MockUSDB to ${mockusdb.address}`);
+    if(chainID != 31337) await verifyContract(mockusdb.address, args);
+    if(!!MOCK_USDB_ADDRESS && mockusdb.address != MOCK_USDB_ADDRESS) throw new Error(`Deployed MockUSDB to ${mockusdb.address}, expected ${MOCK_USDB_ADDRESS}`)
+  }
+}
+
+async function deployRingProtocolModuleB() {
+  if(await isDeployed(RING_PROTOCOL_MODULE_B_ADDRESS)) {
+    ringProtocolModuleB = await ethers.getContractAt("RingProtocolModuleB", RING_PROTOCOL_MODULE_B_ADDRESS, boombotsdeployer) as RingProtocolModuleB;
+  } else {
+    console.log("Deploying RingProtocolModuleB");
+    let args = [BLAST_ADDRESS, GAS_COLLECTOR_ADDRESS];
+    ringProtocolModuleB = await deployContractUsingContractFactory(boombotsdeployer, "RingProtocolModuleB", args, toBytes32(0), undefined, {...networkSettings.overrides, gasLimit: 6_000_000}, networkSettings.confirmations) as RingProtocolModuleB;
+    console.log(`Deployed RingProtocolModuleB to ${ringProtocolModuleB.address}`);
+    if(chainID != 31337) await verifyContract(ringProtocolModuleB.address, args);
+    if(!!RING_PROTOCOL_MODULE_B_ADDRESS && ringProtocolModuleB.address != RING_PROTOCOL_MODULE_B_ADDRESS) throw new Error(`Deployed ModulePack100 to ${ringProtocolModuleB.address}, expected ${RING_PROTOCOL_MODULE_B_ADDRESS}`)
+  }
+}
+
+
+function logAddresses() {
+  console.log("");
+  console.log("| Contract Name                | Address                                      |");
+  console.log("|------------------------------|----------------------------------------------|");
+  logContractAddress("ERC6551Registry", ERC6551Registry);
+  logContractAddress("ContractFactory", contractFactory.address);
+  logContractAddress("GasCollector", gasCollector.address);
+  logContractAddress("BoomBotsNFT", boomBotsNft.address);
+  logContractAddress("BoomBotsAccount", accountImplementation.address);
+  logContractAddress("ModulePack102", modulePack102.address);
+  logContractAddress("DataStore", dataStore.address);
+  logContractAddress("Factory01", factory01.address);
+  logContractAddress("Factory02", factory02.address);
+  logContractAddress("BalanceFetcher", balanceFetcher.address);
+  logContractAddress("PreBOOM", preboom.address);
+  logContractAddress("MockUSDB", mockusdb.address);
+  logContractAddress("RingProtocolModuleB", ringProtocolModuleB.address);
 }
 
 main()

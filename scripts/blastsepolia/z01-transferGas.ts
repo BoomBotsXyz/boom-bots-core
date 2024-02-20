@@ -37,8 +37,8 @@ async function main() {
 async function transfer() {
   console.log("transferring eth")
   let from = boombotseth
-  let to = boombotsdeployer.address
-  let value = WeiPerEther.mul(1)
+  let to = accounts.blasttestnetuser1.address
+  let value = WeiPerEther.mul(1).div(10)
 
   let tx = await from.sendTransaction({
     to: to,
